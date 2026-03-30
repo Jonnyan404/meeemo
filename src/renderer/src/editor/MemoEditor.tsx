@@ -16,6 +16,7 @@ export function MemoEditor() {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentRef = useRef(content)
+  const [editorKey, setEditorKey] = useState(0)
 
   useEffect(() => {
     api.onOpenMemo((fname) => {
@@ -111,6 +112,7 @@ export function MemoEditor() {
       contentRef.current = freshContent
     }
     setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))
+    setEditorKey((k) => k + 1)
   }, [filename, fileType, api, writeFn])
 
   const showHeader = headerVisible || popoverOpen
@@ -142,9 +144,9 @@ export function MemoEditor() {
 
       <div className="flex-1 overflow-y-auto">
         {mode === 'plain' ? (
-          <PlainTextEditor key={`plain-${filename}-${mode}`} content={content} onChange={handleChange} />
+          <PlainTextEditor key={`plain-${editorKey}`} content={content} onChange={handleChange} />
         ) : (
-          <TiptapEditor key={`wysiwyg-${filename}-${mode}`} content={content} onChange={handleChange} />
+          <TiptapEditor key={`wysiwyg-${editorKey}`} content={content} onChange={handleChange} />
         )}
       </div>
     </div>

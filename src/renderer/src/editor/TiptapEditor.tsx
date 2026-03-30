@@ -11,8 +11,7 @@ interface TiptapEditorProps {
 }
 
 export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
-  const isUpdatingRef = useRef(false)
-  const initialContentRef = useRef(content)
+  const isInternalRef = useRef(false)
 
   const editor = useEditor({
     extensions: [
@@ -21,27 +20,16 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       TaskItem.configure({ nested: true }),
       Markdown.configure({ html: false })
     ],
-    content: '', // start empty, set markdown content in onCreate
+    // Pass raw markdown string — the Markdown extension intercepts and parses it
+    content,
+    // Tell Tiptap to treat the content string as markdown, not HTML
+    enableContentCheck: false,
     immediatelyRender: false,
-    onCreate: ({ editor }) => {
-      // Set initial content as markdown
-      isUpdatingRef.current = true
-      try {
-        const doc = (editor as any).storage.markdown.parser.parse(initialContentRef.current || '')
-        if (doc) editor.commands.setContent(doc)
-      } catch {
-        editor.commands.setContent(initialContentRef.current || '')
-      }
-      isUpdatingRef.current = false
-    },
     onUpdate: ({ editor }) => {
-      if (isUpdatingRef.current) return
-      try {
-        const md = (editor as any).storage.markdown.getMarkdown()
-        onChange(md)
-      } catch {
-        onChange(editor.getText())
-      }
+      if (isInternalRef.current) return
+      // Serialize back to markdown
+      const md = getMarkdown(editor)
+      onChange(md)
     }
   })
 
@@ -53,32 +41,47 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
           outline: none;
           min-height: 100%;
           color: var(--text-primary);
-          line-height: 1.4;
+          line-height: 1.5;
         }
-        .tiptap-editor .tiptap h1 { font-size: 1.5em; font-weight: 700; margin: 0.3em 0 0.15em; line-height: 1.25; color: var(--text-primary); }
-        .tiptap-editor .tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.3em 0 0.15em; line-height: 1.25; color: var(--text-primary); }
-        .tiptap-editor .tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.25em 0 0.1em; line-height: 1.3; color: var(--text-primary); }
-        .tiptap-editor .tiptap p { margin: 0.15em 0; }
-        .tiptap-editor .tiptap ul, .tiptap-editor .tiptap ol { padding-left: 1.5em; }
-        .tiptap-editor .tiptap code { background: rgba(0,0,0,0.06); padding: 0.15em 0.3em; border-radius: 3px; font-size: 0.9em; font-family: monospace; }
+        .tiptap-editor .tiptap h1 { font-size: 1.5em; font-weight: 700; margin: 0.4em 0 0.2em; line-height: 1.3; }
+        .tiptap-editor .tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.35em 0 0.15em; line-height: 1.3; }
+        .tiptap-editor .tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.3em 0 0.1em; line-height: 1.3; }
+        .tiptap-editor .tiptap p { margin: 0.2em 0; }
+        .tiptap-editor .tiptap ul, .tiptap-editor .tiptap ol { padding-left: 1.5em; margin: 0.2em 0; }
+        .tiptap-editor .tiptap li { margin: 0.1em 0; }
+        .tiptap-editor .tiptap strong { font-weight: 700; }
+        .tiptap-editor .tiptap em { font-style: italic; }
+        .tiptap-editor .tiptap code { background: rgba(0,0,0,0.06); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; font-family: ui-monospace, monospace; }
         [data-theme="dark"] .tiptap-editor .tiptap code { background: rgba(255,255,255,0.1); }
-        .tiptap-editor .tiptap pre { background: rgba(0,0,0,0.04); padding: 0.75em 1em; border-radius: 6px; overflow-x: auto; }
+        .tiptap-editor .tiptap pre { background: rgba(0,0,0,0.04); padding: 0.75em 1em; border-radius: 6px; overflow-x: auto; margin: 0.3em 0; }
         [data-theme="dark"] .tiptap-editor .tiptap pre { background: rgba(255,255,255,0.05); }
         .tiptap-editor .tiptap pre code { background: none; padding: 0; }
         .tiptap-editor .tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
-        .tiptap-editor .tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5em; }
-        .tiptap-editor .tiptap ul[data-type="taskList"] li label { margin-top: 0.15em; }
+        .tiptap-editor .tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5em; margin: 0.15em 0; }
+        .tiptap-editor .tiptap ul[data-type="taskList"] li label { margin-top: 0.1em; cursor: pointer; }
         .tiptap-editor .tiptap ul[data-type="taskList"] li[data-checked="true"] > div { text-decoration: line-through; opacity: 0.5; }
         .tiptap-editor .tiptap a { color: var(--accent); text-decoration: underline; }
-        .tiptap-editor .tiptap blockquote { border-left: 3px solid var(--border-color); padding-left: 1em; margin-left: 0; color: var(--text-secondary); }
-        .tiptap-editor .tiptap p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          color: var(--text-secondary);
-          pointer-events: none;
-          float: left;
-          height: 0;
-        }
+        .tiptap-editor .tiptap blockquote { border-left: 3px solid var(--border-color); padding-left: 1em; margin: 0.3em 0; margin-left: 0; color: var(--text-secondary); }
+        .tiptap-editor .tiptap hr { border: none; border-top: 1px solid var(--border-color); margin: 0.5em 0; }
       `}</style>
     </div>
   )
+}
+
+function getMarkdown(editor: any): string {
+  try {
+    // @tiptap/markdown v3 API
+    if (editor.storage?.markdown?.getMarkdown) {
+      return editor.storage.markdown.getMarkdown()
+    }
+    // Fallback: try the serializer directly
+    if (editor.extensionManager?.extensions) {
+      const mdExt = editor.extensionManager.extensions.find((e: any) => e.name === 'markdown')
+      if (mdExt?.storage?.getMarkdown) {
+        return mdExt.storage.getMarkdown()
+      }
+    }
+  } catch { /* fall through */ }
+  // Last resort: plain text
+  return editor.getText()
 }

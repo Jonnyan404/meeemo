@@ -26,23 +26,33 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
   const pinnedSet = new Set(config?.pinnedMemos || [])
 
   const handleNewMemo = async () => {
-    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
-    const filename = await api.memoCreate(title)
-    onSwitchMemo(filename)
-    onClose()
+    try {
+      const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
+      const filename = await api.memoCreate(title)
+      console.log('[MenuPopover] Created memo:', filename)
+      onSwitchMemo(filename)
+      onClose()
+    } catch (err) {
+      console.error('[MenuPopover] Failed to create memo:', err)
+    }
   }
 
   const handleDelete = async () => {
     if (!currentFilename) return
     const title = currentFilename.replace('.md', '')
-    const confirmed = window.confirm(`Delete "${title}"? This cannot be undone.`)
-    if (!confirmed) return
-    await api.memoDelete(currentFilename)
-    const remaining = memos.filter((m) => m.filename !== currentFilename)
-    if (remaining.length > 0) {
-      onSwitchMemo(remaining[0].filename)
+    // Use confirm - if it doesn't show in frameless window, the IPC delete still runs
+    if (!window.confirm(`Delete "${title}"?\n\nThis cannot be undone.`)) return
+    try {
+      await api.memoDelete(currentFilename)
+      console.log('[MenuPopover] Deleted:', currentFilename)
+      const remaining = memos.filter((m) => m.filename !== currentFilename)
+      if (remaining.length > 0) {
+        onSwitchMemo(remaining[0].filename)
+      }
+      onClose()
+    } catch (err) {
+      console.error('[MenuPopover] Failed to delete:', err)
     }
-    onClose()
   }
 
   const handlePin = async () => {

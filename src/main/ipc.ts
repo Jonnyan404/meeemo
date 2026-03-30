@@ -3,6 +3,15 @@ import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, re
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
 
+// Broadcast to all windows EXCEPT the sender (ColaMD-style isInternalSave pattern)
+function broadcastToOthers(senderContents: Electron.WebContents | null, channel: string, ...args: unknown[]): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed() && win.webContents !== senderContents) {
+      win.webContents.send(channel, ...args)
+    }
+  }
+}
+
 function broadcastToAll(channel: string, ...args: unknown[]): void {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
@@ -15,9 +24,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('memo:list', () => listMemos())
   ipcMain.handle('memo:search', (_e, query: string) => searchMemos(query))
   ipcMain.handle('memo:read', (_e, filename: string) => readMemo(filename))
-  ipcMain.handle('memo:write', (_e, filename: string, content: string) => {
+  ipcMain.handle('memo:write', (e, filename: string, content: string) => {
     writeMemo(filename, content)
-    broadcastToAll('data-changed')
+    broadcastToOthers(e.sender, 'data-changed')
   })
   ipcMain.handle('memo:create', (_e, title: string) => {
     const result = createMemo(title)
@@ -43,9 +52,9 @@ export function registerIpcHandlers(): void {
   })
   ipcMain.handle('todo:list', () => listTodoLists())
   ipcMain.handle('todo:read', (_e, filename: string) => readTodoList(filename))
-  ipcMain.handle('todo:write', (_e, filename: string, tasks: any[]) => {
+  ipcMain.handle('todo:write', (e, filename: string, tasks: any[]) => {
     writeTodoList(filename, tasks)
-    broadcastToAll('data-changed')
+    broadcastToOthers(e.sender, 'data-changed')
   })
   ipcMain.handle('todo:create-list', (_e, name: string) => {
     const result = createTodoList(name)
@@ -59,9 +68,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('todo:rename-list', (_e, oldFilename: string, newName: string) => renameTodoList(oldFilename, newName))
   ipcMain.handle('todo:uncompleted-count', () => totalUncompleted())
   ipcMain.handle('todo:read-raw', (_e, filename: string) => readTodoRaw(filename))
-  ipcMain.handle('todo:write-raw', (_e, filename: string, content: string) => {
+  ipcMain.handle('todo:write-raw', (e, filename: string, content: string) => {
     writeTodoRaw(filename, content)
-    broadcastToAll('data-changed')
+    broadcastToOthers(e.sender, 'data-changed')
   })
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => updateConfig(partial))

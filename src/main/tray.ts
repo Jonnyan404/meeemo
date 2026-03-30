@@ -5,35 +5,16 @@ import { totalUncompleted } from './todo-service'
 let tray: Tray | null = null
 
 function createTrayIcon(): Electron.NativeImage {
-  // Create a 22x22 template image with a simple checkmark
-  const size = 22
-  const canvas = Buffer.alloc(size * size * 4) // RGBA
-
-  // Draw a simple square outline with rounded feel
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const idx = (y * size + x) * 4
-      let alpha = 0
-
-      // Border (2px inset)
-      const inBorder = (x >= 3 && x < size - 3 && y >= 3 && y < size - 3) &&
-                       (x < 5 || x >= size - 5 || y < 5 || y >= size - 5)
-      // Checkmark: simple diagonal lines
-      const checkLeft = (x >= 6 && x <= 9 && y >= 10 && y <= 14 && (x - 6) === (y - 10))
-      const checkRight = (x >= 9 && x <= 16 && y >= 6 && y <= 14 && (16 - x) === (y - 6))
-
-      if (inBorder || checkLeft || checkRight) alpha = 255
-
-      canvas[idx] = 0     // R
-      canvas[idx + 1] = 0 // G
-      canvas[idx + 2] = 0 // B
-      canvas[idx + 3] = alpha
-    }
-  }
-
-  const icon = nativeImage.createFromBuffer(canvas, { width: size, height: size })
-  icon.setTemplateImage(true)
-  return icon
+  // 16x16 SVG → dataURL → nativeImage. Template image for macOS menu bar.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="black" stroke-width="1.2"/>
+    <polyline points="4,8.5 7,11.5 12,5" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`
+  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  const icon = nativeImage.createFromDataURL(dataUrl)
+  const resized = icon.resize({ width: 16, height: 16 })
+  resized.setTemplateImage(true)
+  return resized
 }
 
 export function createTray(): Tray {
