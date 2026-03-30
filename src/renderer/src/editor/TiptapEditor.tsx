@@ -20,15 +20,14 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       TaskItem.configure({ nested: true }),
       Markdown.configure({ html: false })
     ],
-    // Pass raw markdown string — the Markdown extension intercepts and parses it
     content,
-    // Tell Tiptap to treat the content string as markdown, not HTML
-    enableContentCheck: false,
+    // CRITICAL: tell @tiptap/markdown to parse the content string as markdown
+    contentType: 'markdown' as any,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       if (isInternalRef.current) return
-      // Serialize back to markdown
-      const md = getMarkdown(editor)
+      // editor.getMarkdown() is added by @tiptap/markdown in onBeforeCreate
+      const md = (editor as any).getMarkdown?.() ?? editor.getText()
       onChange(md)
     }
   })
@@ -66,22 +65,4 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       `}</style>
     </div>
   )
-}
-
-function getMarkdown(editor: any): string {
-  try {
-    // @tiptap/markdown v3 API
-    if (editor.storage?.markdown?.getMarkdown) {
-      return editor.storage.markdown.getMarkdown()
-    }
-    // Fallback: try the serializer directly
-    if (editor.extensionManager?.extensions) {
-      const mdExt = editor.extensionManager.extensions.find((e: any) => e.name === 'markdown')
-      if (mdExt?.storage?.getMarkdown) {
-        return mdExt.storage.getMarkdown()
-      }
-    }
-  } catch { /* fall through */ }
-  // Last resort: plain text
-  return editor.getText()
 }

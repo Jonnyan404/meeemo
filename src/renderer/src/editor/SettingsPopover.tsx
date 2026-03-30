@@ -94,6 +94,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   return (
     <div
       className="absolute top-10 left-2 w-56 frosted-glass rounded-lg border border-[var(--border-color)] shadow-xl z-50 p-3"
+      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Theme toggle */}
