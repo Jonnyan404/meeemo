@@ -94,6 +94,17 @@ export function togglePalette(): void {
 
 export function createEditorWindow(filename?: string): BrowserWindow {
   if (editorWindow && !editorWindow.isDestroyed()) {
+    // Move to cursor's display if on a different screen
+    const cur = screen.getCursorScreenPoint()
+    const disp = screen.getDisplayNearestPoint(cur)
+    const bounds = editorWindow.getBounds()
+    const winDisplay = screen.getDisplayMatching(bounds)
+    if (winDisplay.id !== disp.id) {
+      editorWindow.setPosition(
+        disp.workArea.x + disp.workArea.width - bounds.width - 40,
+        disp.workArea.y + 40
+      )
+    }
     editorWindow.show()
     editorWindow.focus()
     if (filename) {
@@ -104,13 +115,15 @@ export function createEditorWindow(filename?: string): BrowserWindow {
 
   const config = loadConfig()
   const ws = config.lastWindowState
-  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize
+  const cursor = screen.getCursorScreenPoint()
+  const activeDisplay = screen.getDisplayNearestPoint(cursor)
+  const { x: adx, y: ady, width: adw, height: adh } = activeDisplay.workArea
 
   editorWindow = new BrowserWindow({
     width: ws.width,
     height: ws.height,
-    x: ws.x >= 0 ? ws.x : screenW - ws.width - 40,
-    y: ws.y >= 0 ? ws.y : 40,
+    x: ws.x >= 0 ? ws.x : adx + adw - ws.width - 40,
+    y: ws.y >= 0 ? ws.y : ady + 40,
     show: false,
     frame: false,
     transparent: true,

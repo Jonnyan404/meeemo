@@ -67,7 +67,7 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
 
   return (
     <div
-      className="absolute top-10 right-8 w-56 frosted-glass rounded-lg border border-[var(--border-color)] shadow-xl z-50 overflow-hidden"
+      className="absolute top-10 right-8 w-56 frosted-fixed rounded-lg border border-[var(--border-color)] shadow-xl z-50 overflow-hidden"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       onClick={(e) => e.stopPropagation()}
     >

@@ -106,6 +106,14 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
         />
       </div>
 
+      {/* Popover backdrop — click outside to close */}
+      {anyPopoverOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => { setShowSettings(false); setShowMenu(false) }}
+        />
+      )}
+
       {/* Popovers */}
       {showSettings && <SettingsPopover onClose={() => setShowSettings(false)} />}
       {showMenu && (
