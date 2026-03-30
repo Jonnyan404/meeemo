@@ -60,7 +60,9 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
 
   const handleBlurChange = (value: number) => {
     setBlur(value)
-    document.documentElement.style.setProperty('--panel-blur', `${value}px`)
+    // Higher blur value = more transparent panel = more vibrancy visible
+    const blurAlpha = 1 - (value / 40) // blur 0 = fully opaque, blur 30 = 25% transparent
+    applyPanelBg(panelColor, Math.min(opacity, blurAlpha))
     updateWindowState({ blur: value })
   }
 

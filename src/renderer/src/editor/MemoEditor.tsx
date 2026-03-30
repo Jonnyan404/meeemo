@@ -4,9 +4,12 @@ import { TiptapEditor } from './TiptapEditor'
 import { EditorHeader } from './EditorHeader'
 import { useApi } from '../hooks/use-ipc'
 
+type FileType = 'memo' | 'todo'
+
 export function MemoEditor() {
   const api = useApi()
   const [filename, setFilename] = useState<string | null>(null)
+  const [fileType, setFileType] = useState<FileType>('memo')
   const [content, setContent] = useState('')
   const [mode, setMode] = useState<'plain' | 'wysiwyg'>('wysiwyg')
   const [headerVisible, setHeaderVisible] = useState(false)
@@ -15,13 +18,28 @@ export function MemoEditor() {
   const contentRef = useRef(content)
 
   useEffect(() => {
-    api.onOpenMemo((fname) => setFilename(fname))
+    api.onOpenMemo((fname) => {
+      setFilename(fname)
+      setFileType('memo')
+    })
   }, [api])
 
+  // Load content when filename changes
   useEffect(() => {
     if (!filename) return
-    api.memoRead(filename).then(setContent)
-  }, [filename, api])
+    const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
+    readFn(filename).then((c) => {
+      setContent(c)
+      contentRef.current = c
+    })
+  }, [filename, fileType, api])
+
+  const writeFn = useCallback(
+    (fname: string, c: string) => {
+      return fileType === 'memo' ? api.memoWrite(fname, c) : api.todoWriteRaw(fname, c)
+    },
+    [fileType, api]
+  )
 
   const handleChange = useCallback(
     (newContent: string) => {
@@ -30,40 +48,55 @@ export function MemoEditor() {
       if (!filename) return
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = setTimeout(() => {
-        api.memoWrite(filename, newContent)
+        writeFn(filename, newContent)
       }, 500)
     },
-    [filename, api]
+    [filename, writeFn]
   )
 
   const handleRename = useCallback(
     async (newTitle: string) => {
-      if (!filename) return
+      if (!filename || fileType !== 'memo') return
       const newFilename = await api.memoRename(filename, newTitle)
       setFilename(newFilename)
     },
-    [filename, api]
+    [filename, fileType, api]
   )
 
   const handleSwitchMemo = useCallback(
     (newFilename: string) => {
-      // Flush pending save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
-        if (filename) api.memoWrite(filename, content)
+        if (filename) writeFn(filename, contentRef.current)
       }
+      setFileType('memo')
       setFilename(newFilename)
     },
-    [filename, content, api]
+    [filename, writeFn]
   )
 
-  const handleToggleMode = useCallback(() => {
-    // Flush current content to file before switching to prevent loss
+  const handleSwitchTodo = useCallback(
+    (newFilename: string) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        if (filename) writeFn(filename, contentRef.current)
+      }
+      setFileType('todo')
+      setFilename(newFilename)
+    },
+    [filename, writeFn]
+  )
+
+  const handleToggleMode = useCallback(async () => {
     if (filename && contentRef.current) {
-      api.memoWrite(filename, contentRef.current)
+      await writeFn(filename, contentRef.current)
+      const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
+      const freshContent = await readFn(filename)
+      setContent(freshContent)
+      contentRef.current = freshContent
     }
     setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))
-  }, [filename, api])
+  }, [filename, fileType, api, writeFn])
 
   const showHeader = headerVisible || popoverOpen
 
@@ -73,7 +106,6 @@ export function MemoEditor() {
       onMouseMove={(e) => setHeaderVisible(e.clientY < 48)}
       onMouseLeave={() => setHeaderVisible(false)}
     >
-      {/* Close button - shown only when header is hidden */}
       {!showHeader && (
         <button
           onClick={() => api.windowClose()}
@@ -87,17 +119,17 @@ export function MemoEditor() {
         mode={mode}
         onToggleMode={handleToggleMode}
         onSwitchMemo={handleSwitchMemo}
+        onSwitchTodo={handleSwitchTodo}
         onRename={handleRename}
         onClose={() => api.windowClose()}
         onPopoverChange={setPopoverOpen}
       />
 
-      {/* Editor area */}
       <div className="flex-1 overflow-y-auto">
         {mode === 'plain' ? (
-          <PlainTextEditor key={`plain-${filename}`} content={content} onChange={handleChange} />
+          <PlainTextEditor key={`plain-${filename}-${mode}`} content={content} onChange={handleChange} />
         ) : (
-          <TiptapEditor key={`wysiwyg-${filename}`} content={content} onChange={handleChange} />
+          <TiptapEditor key={`wysiwyg-${filename}-${mode}`} content={content} onChange={handleChange} />
         )}
       </div>
     </div>

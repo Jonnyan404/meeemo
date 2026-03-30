@@ -8,12 +8,13 @@ interface EditorHeaderProps {
   mode: 'plain' | 'wysiwyg'
   onToggleMode: () => void
   onSwitchMemo: (filename: string) => void
+  onSwitchTodo: (filename: string) => void
   onRename: (newTitle: string) => void
   onClose: () => void
   onPopoverChange?: (open: boolean) => void
 }
 
-export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMemo, onRename, onClose, onPopoverChange }: EditorHeaderProps) {
+export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMemo, onSwitchTodo, onRename, onClose, onPopoverChange }: EditorHeaderProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -111,6 +112,7 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
         <MenuPopover
           currentFilename={filename}
           onSwitchMemo={onSwitchMemo}
+          onSwitchTodo={onSwitchTodo}
           onClose={() => setShowMenu(false)}
         />
       )}

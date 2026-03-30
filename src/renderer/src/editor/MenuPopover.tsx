@@ -4,31 +4,34 @@ import { useApi } from '../hooks/use-ipc'
 interface MenuPopoverProps {
   currentFilename: string | null
   onSwitchMemo: (filename: string) => void
+  onSwitchTodo: (filename: string) => void
   onClose: () => void
 }
 
-export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopoverProps) {
+export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClose }: MenuPopoverProps) {
   const api = useApi()
   const [memos, setMemos] = useState<MemoMeta[]>([])
+  const [todoLists, setTodoLists] = useState<TodoList[]>([])
   const [config, setConfig] = useState<AppConfig | null>(null)
+  const [listMode, setListMode] = useState<'memo' | 'todo'>('memo')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
-    Promise.all([api.memoList(), api.configGet()]).then(([m, c]) => {
+    Promise.all([api.memoList(), api.configGet(), api.todoList()]).then(([m, c, t]) => {
       setMemos(m)
       setConfig(c)
+      setTodoLists(t)
     })
   }, [api])
 
   const pinnedSet = new Set(config?.pinnedMemos || [])
 
   const handleNewMemo = async () => {
-    const title = `Untitled ${new Date().toLocaleDateString()}`
+    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
     const filename = await api.memoCreate(title)
     onSwitchMemo(filename)
     onClose()
   }
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleDelete = async () => {
     if (!currentFilename) return
@@ -52,11 +55,6 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopo
     setConfig(c)
   }
 
-  const handleSwitchToTodo = () => {
-    ;(window as any).__electron_ipc_send?.('show-todo-from-palette')
-    onClose()
-  }
-
   return (
     <div
       className="absolute top-10 right-8 w-56 frosted-glass rounded-lg border border-[var(--border-color)] shadow-xl z-50 overflow-hidden"
@@ -66,7 +64,7 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopo
       <div className="flex items-center gap-1 p-2 border-b border-[var(--border-color)]">
         <button
           onClick={handleNewMemo}
-          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           title="New Memo"
         >
           <span className="text-lg">+</span>
@@ -74,7 +72,7 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopo
         </button>
         <button
           onClick={handlePin}
-          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           title={currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin'}
         >
           <span className="text-lg">{currentFilename && pinnedSet.has(currentFilename) ? '📌' : '📍'}</span>
@@ -93,32 +91,69 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopo
         </button>
       </div>
 
-      {/* Switch to TODO */}
-      <button
-        onClick={handleSwitchToTodo}
-        className="w-full text-left px-3 py-2 text-sm text-[var(--accent)] hover:bg-black/5 dark:hover:bg-white/10 border-b border-[var(--border-color)]"
-      >
-        Switch to TODO
-      </button>
+      {/* Memo / TODO toggle tabs */}
+      <div className="flex border-b border-[var(--border-color)]">
+        <button
+          onClick={() => setListMode('memo')}
+          className={`flex-1 text-center text-xs py-2 transition-colors ${
+            listMode === 'memo'
+              ? 'text-[var(--accent)] border-b-2 border-[var(--accent)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          Memos
+        </button>
+        <button
+          onClick={() => setListMode('todo')}
+          className={`flex-1 text-center text-xs py-2 transition-colors ${
+            listMode === 'todo'
+              ? 'text-[var(--accent)] border-b-2 border-[var(--accent)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          TODOs
+        </button>
+      </div>
 
-      {/* Document list */}
+      {/* Document / TODO list */}
       <div className="p-2 max-h-48 overflow-y-auto">
-        <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider px-2 py-1">DOCUMENTS</div>
-        {memos.map((m) => (
-          <button
-            key={m.filename}
-            onClick={() => { onSwitchMemo(m.filename); onClose() }}
-            className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
-              m.filename === currentFilename
-                ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
-            }`}
-          >
-            {pinnedSet.has(m.filename) ? '📌 ' : '📄 '}{m.title}
-          </button>
-        ))}
-        {memos.length === 0 && (
-          <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No memos yet</div>
+        {listMode === 'memo' ? (
+          <>
+            {memos.map((m) => (
+              <button
+                key={m.filename}
+                onClick={() => { onSwitchMemo(m.filename); onClose() }}
+                className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
+                  m.filename === currentFilename
+                    ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {pinnedSet.has(m.filename) ? '📌 ' : '📄 '}{m.title}
+              </button>
+            ))}
+            {memos.length === 0 && (
+              <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No memos yet</div>
+            )}
+          </>
+        ) : (
+          <>
+            {todoLists.map((t) => (
+              <button
+                key={t.filename}
+                onClick={() => { onSwitchTodo(t.filename); onClose() }}
+                className="w-full text-left px-2 py-1.5 rounded text-sm truncate text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]"
+              >
+                ☑ {t.name}
+                <span className="ml-2 text-xs opacity-60">
+                  {t.tasks.filter(task => !task.done).length} tasks
+                </span>
+              </button>
+            ))}
+            {todoLists.length === 0 && (
+              <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No TODO lists yet</div>
+            )}
+          </>
         )}
       </div>
     </div>

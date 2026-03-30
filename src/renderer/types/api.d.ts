@@ -28,6 +28,8 @@ interface MeeemoAPI {
   todoDeleteList(filename: string): Promise<void>
   todoRenameList(oldFilename: string, newName: string): Promise<string>
   todoUncompletedCount(): Promise<number>
+  todoReadRaw(filename: string): Promise<string>
+  todoWriteRaw(filename: string, content: string): Promise<void>
   configGet(): Promise<AppConfig>
   configSet(partial: Partial<AppConfig>): Promise<AppConfig>
   windowSetOpacity(opacity: number): Promise<void>

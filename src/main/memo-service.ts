@@ -59,8 +59,12 @@ export function writeMemo(filename: string, content: string): void {
   writeFileSync(join(memoDir(), filename), content)
 }
 
+function sanitizeFilename(name: string): string {
+  return name.replace(/[/\\:*?"<>|]/g, '-')
+}
+
 export function createMemo(title: string): string {
-  const filename = `${title}.md`
+  const filename = `${sanitizeFilename(title)}.md`
   writeFileSync(join(memoDir(), filename), '')
   return filename
 }
@@ -70,7 +74,7 @@ export function deleteMemo(filename: string): void {
 }
 
 export function renameMemo(oldFilename: string, newTitle: string): string {
-  const newFilename = `${newTitle}.md`
+  const newFilename = `${sanitizeFilename(newTitle)}.md`
   renameSync(join(memoDir(), oldFilename), join(memoDir(), newFilename))
   return newFilename
 }

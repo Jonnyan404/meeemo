@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
-import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted } from './todo-service'
+import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
 
 export function registerIpcHandlers(): void {
@@ -24,6 +24,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('todo:delete-list', (_e, filename: string) => deleteTodoList(filename))
   ipcMain.handle('todo:rename-list', (_e, oldFilename: string, newName: string) => renameTodoList(oldFilename, newName))
   ipcMain.handle('todo:uncompleted-count', () => totalUncompleted())
+  ipcMain.handle('todo:read-raw', (_e, filename: string) => readTodoRaw(filename))
+  ipcMain.handle('todo:write-raw', (_e, filename: string, content: string) => writeTodoRaw(filename, content))
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => updateConfig(partial))
   ipcMain.handle('window:set-opacity', (e, opacity: number) => {

@@ -40,6 +40,14 @@ export function createTodoList(name: string): string {
   return filename
 }
 
+export function readTodoRaw(filename: string): string {
+  return readFileSync(join(todoDir(), filename), 'utf-8')
+}
+
+export function writeTodoRaw(filename: string, content: string): void {
+  writeFileSync(join(todoDir(), filename), content)
+}
+
 export function deleteTodoList(filename: string): void { unlinkSync(join(todoDir(), filename)) }
 
 export function renameTodoList(oldFilename: string, newName: string): string {
