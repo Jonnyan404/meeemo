@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { app, ipcMain, BrowserWindow } from 'electron'
+import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
@@ -90,15 +91,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('window:set-vibrancy', (e, vibrancy: string | null) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (!win) return
-    const nativeVibrancy = (() => {
-      try { return require('../../native/macos-vibrancy') }
-      catch { return null }
-    })()
-    if (!nativeVibrancy) return
+    let addon: any
+    try { addon = require(join(app.getAppPath(), 'native/macos-vibrancy')) }
+    catch { return }
     if (vibrancy) {
-      nativeVibrancy.setVibrancy(win.getNativeWindowHandle(), vibrancy)
+      addon.setVibrancy(win.getNativeWindowHandle(), vibrancy)
     } else {
-      nativeVibrancy.removeVibrancy(win.getNativeWindowHandle())
+      addon.removeVibrancy(win.getNativeWindowHandle())
     }
   })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })

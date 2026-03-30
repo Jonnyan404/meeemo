@@ -1,12 +1,18 @@
-import { BrowserWindow, screen } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { loadConfig, updateConfig } from './config'
 
 // Native macOS vibrancy addon — bypasses Electron's broken built-in vibrancy
-const nativeVibrancy = (() => {
-  try { return require('../../native/macos-vibrancy') }
-  catch { return { setVibrancy() {}, removeVibrancy() {} } }
-})()
+// Must use absolute path because electron-vite bundles main process
+function loadNativeVibrancy() {
+  try {
+    const addonPath = join(app.getAppPath(), 'native/macos-vibrancy')
+    return require(addonPath)
+  } catch (e) {
+    console.warn('[vibrancy] Native addon not available:', (e as Error).message)
+    return { setVibrancy() {}, removeVibrancy() {} }
+  }
+}
 
 let paletteWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
@@ -66,7 +72,12 @@ export function createPaletteWindow(): BrowserWindow {
 
   loadPage(paletteWindow, 'palette')
 
-  paletteWindow.once('ready-to-show', () => paletteWindow?.show())
+  paletteWindow.once('ready-to-show', () => {
+    paletteWindow?.show()
+    if (paletteWindow) {
+      loadNativeVibrancy().setVibrancy(paletteWindow.getNativeWindowHandle(), 'popover')
+    }
+  })
   paletteWindow.on('blur', () => paletteWindow?.hide())
   paletteWindow.on('closed', () => { paletteWindow = null })
 
@@ -117,7 +128,7 @@ export function createEditorWindow(filename?: string): BrowserWindow {
 
   // Apply native vibrancy if blur is enabled
   if (ws.blur > 0) {
-    nativeVibrancy.setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
+    loadNativeVibrancy().setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
   }
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
@@ -206,7 +217,12 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
 
   loadPage(todoWindow, 'todo')
 
-  todoWindow.once('ready-to-show', () => todoWindow?.show())
+  todoWindow.once('ready-to-show', () => {
+    todoWindow?.show()
+    if (todoWindow) {
+      loadNativeVibrancy().setVibrancy(todoWindow.getNativeWindowHandle(), 'popover')
+    }
+  })
   todoWindow.on('blur', () => todoWindow?.hide())
   todoWindow.on('closed', () => { todoWindow = null })
 
