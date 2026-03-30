@@ -124,12 +124,9 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     }
   })
 
-  editorWindow.setOpacity(ws.opacity)
+  // Native vibrancy always on — blur is fixed, opacity via CSS --panel-bg alpha
+  loadNativeVibrancy().setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
 
-  // Apply native vibrancy if blur is enabled
-  if (ws.blur > 0) {
-    loadNativeVibrancy().setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
-  }
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
   } else if (ws.alwaysOnTop === 'bottom') {

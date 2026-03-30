@@ -36,7 +36,7 @@ const DEFAULT_CONFIG: AppConfig = {
     blur: 20,
     panelColor: '#ffffff',
     fontColor: '#1a1a1a',
-    alwaysOnTop: 'normal'
+    alwaysOnTop: 'always'
   }
 }
 

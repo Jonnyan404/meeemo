@@ -8,31 +8,23 @@ interface SettingsPopoverProps {
 export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const api = useApi()
   const [opacity, setOpacity] = useState(0.85)
-  const [blur, setBlur] = useState(20)
   const [panelColor, setPanelColor] = useState('#ffffff')
   const [fontColor, setFontColor] = useState('#1a1a1a')
-  const [level, setLevel] = useState<'always' | 'normal' | 'bottom'>('normal')
+  const [level, setLevel] = useState<'always' | 'normal' | 'bottom'>('always')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     api.configGet().then((config) => {
       const ws = config.lastWindowState
       setOpacity(ws.opacity)
-      setBlur(ws.blur)
       setPanelColor(ws.panelColor)
       setFontColor(ws.fontColor)
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
-      // Apply saved values to CSS
-      const { r, g, b } = (() => {
-        const hex = ws.panelColor
-        return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
-      })()
+      const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
       document.documentElement.setAttribute('data-theme', config.theme)
-      // Apply saved vibrancy state
-      api.windowSetVibrancy(ws.blur > 0 ? 'under-window' : null)
     })
   }, [api])
 
@@ -55,18 +47,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const handleOpacityChange = (value: number) => {
     setOpacity(value)
     applyPanelBg(panelColor, value)
-    api.windowSetOpacity(Math.max(value, 0.4))
     updateWindowState({ opacity: value })
-  }
-
-  const handleBlurChange = (value: number) => {
-    setBlur(value)
-    // Toggle native vibrancy: blur > 0 = frosted glass, blur = 0 = no blur
-    api.windowSetVibrancy(value > 0 ? 'under-window' : null)
-    // Higher blur = more transparent panel = more vibrancy visible
-    const blurAlpha = 1 - (value / 40)
-    applyPanelBg(panelColor, Math.min(opacity, blurAlpha))
-    updateWindowState({ blur: value })
   }
 
   const handlePanelColorChange = (value: string) => {
@@ -99,7 +80,6 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
     setPanelColor(defaults.panelColor)
     setFontColor(defaults.fontColor)
     document.documentElement.setAttribute('data-theme', next)
-    // Clear inline style overrides so CSS [data-theme] rules take effect
     document.documentElement.style.removeProperty('--panel-bg')
     document.documentElement.style.removeProperty('--text-primary')
     api.configSet({
@@ -131,24 +111,12 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">OPACITY</div>
       <div className="flex items-center gap-2 mb-3">
         <input
-          type="range" min="30" max="100"
+          type="range" min="20" max="100"
           value={Math.round(opacity * 100)}
           onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
           className="flex-1 accent-[var(--accent)]"
         />
         <span className="text-xs text-[var(--text-secondary)] w-8 text-right">{Math.round(opacity * 100)}%</span>
-      </div>
-
-      {/* Blur */}
-      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">BLUR</div>
-      <div className="flex items-center gap-2 mb-3">
-        <input
-          type="range" min="0" max="30"
-          value={blur}
-          onChange={(e) => handleBlurChange(Number(e.target.value))}
-          className="flex-1 accent-[var(--accent)]"
-        />
-        <span className="text-xs text-[var(--text-secondary)] w-8 text-right">{blur}px</span>
       </div>
 
       {/* Colors */}
