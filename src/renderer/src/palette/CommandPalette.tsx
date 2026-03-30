@@ -34,10 +34,9 @@ export function CommandPalette() {
         id: 'create',
         icon: '+',
         label: 'Create New Memo',
-        action: async () => {
+        action: () => {
           const title = `Untitled ${new Date().toLocaleDateString()}`
-          const filename = await api.memoCreate(title)
-          openMemo(filename)
+          ;(window as any).__electron_ipc_send?.('create-and-open-memo', title)
         }
       },
       {
@@ -83,9 +82,8 @@ export function CommandPalette() {
         id: 'create-search',
         icon: '+',
         label: `Create "${q}"`,
-        action: async () => {
-          const filename = await api.memoCreate(q)
-          openMemo(filename)
+        action: () => {
+          ;(window as any).__electron_ipc_send?.('create-and-open-memo', q)
         }
       }
     ]

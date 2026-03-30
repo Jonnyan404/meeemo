@@ -20,6 +20,13 @@ app.whenReady().then(() => {
     createEditorWindow(filename)
   })
 
+  ipcMain.on('create-and-open-memo', (_e, title: string) => {
+    hidePalette()
+    const { createMemo } = require('./memo-service')
+    const filename = createMemo(title)
+    createEditorWindow(filename)
+  })
+
   ipcMain.on('show-todo-from-palette', () => {
     hidePalette()
     const tray = getTray()
@@ -30,6 +37,10 @@ app.whenReady().then(() => {
 
   ipcMain.on('update-tray-badge', () => {
     updateTrayBadge()
+  })
+
+  ipcMain.on('app-quit', () => {
+    app.quit()
   })
 })
 

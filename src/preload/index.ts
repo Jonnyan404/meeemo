@@ -33,7 +33,7 @@ contextBridge.exposeInMainWorld('api', api)
 
 // Also expose send for fire-and-forget messages
 contextBridge.exposeInMainWorld('__electron_ipc_send', (channel: string, ...args: unknown[]) => {
-  const ALLOWED_SEND = ['open-editor', 'show-todo-from-palette', 'update-tray-badge']
+  const ALLOWED_SEND = ['open-editor', 'show-todo-from-palette', 'update-tray-badge', 'app-quit', 'create-and-open-memo']
   if (ALLOWED_SEND.includes(channel)) {
     ipcRenderer.send(channel, ...args)
   }

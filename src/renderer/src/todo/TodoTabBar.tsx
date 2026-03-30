@@ -177,6 +177,14 @@ export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDe
                   Delete "{activeList.name}"
                 </button>
               )}
+              <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+              <button
+                onClick={() => { (window as any).__electron_ipc_send?.('app-quit') }}
+                className="w-full text-left text-xs px-3 py-1.5 transition-colors hover:bg-black/5"
+                style={{ color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
+              >
+                Exit Meeemo
+              </button>
             </>
           )}
         </div>
