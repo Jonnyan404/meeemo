@@ -3,13 +3,32 @@
   "version": "0.1.0",
   "description": "A Raycast-style desktop memo app",
   "main": "./out/main/index.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "preview": "electron-vite preview"
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder --mac dmg"
+  },
+  "build": {
+    "appId": "com.meeemo.app",
+    "productName": "Meeemo",
+    "mac": {
+      "icon": "resources/icon.icns",
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "files": [
+      "out/**/*",
+      "native/**/*.node",
+      "native/**/index.js",
+      "native/**/package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "native/macos-vibrancy/build/Release/macos_vibrancy.node",
+        "to": "native/macos-vibrancy/build/Release/macos_vibrancy.node"
+      }
+    ]
   },
   "keywords": [],
   "author": "",
@@ -24,8 +43,6 @@
     "@tiptap/markdown": "^3.21.0",
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.21.0",
-    "electron": "^41.1.0",
-    "electron-vite": "^5.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.2"
@@ -34,6 +51,9 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"
   }
