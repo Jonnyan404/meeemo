@@ -25,6 +25,7 @@ export function MemoEditor() {
   const fileTypeRef = useRef<FileType>('memo')
   const contentRef = useRef('')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipNextReadRef = useRef(false)
 
   // Sync refs
   filenameRef.current = filename
@@ -47,14 +48,20 @@ export function MemoEditor() {
     return ftype === 'memo' ? api.memoWrite(fname, c) : api.todoWriteRaw(fname, c)
   }
 
-  // Open a file: cancel any pending save, bump session, load from disk
-  const openFile = useCallback((fname: string, ftype: FileType) => {
+  // Open a file: cancel any pending save, load content, then set all state atomically
+  // MUST load content before bumping sessionId so TiptapEditor remounts with correct content
+  const openFile = useCallback(async (fname: string, ftype: FileType) => {
     cancelSave()
+    const c = await readFile(fname, ftype)
+    skipNextReadRef.current = true // openFile already loaded content, skip redundant effect read
     setFilename(fname)
     setFileType(ftype)
+    setContent(c)
+    contentRef.current = c
+    filenameRef.current = fname
+    fileTypeRef.current = ftype
     setSessionId((s) => s + 1)
-    // Content will be loaded by the effect below
-  }, [])
+  }, [api])
 
   // ---- Effects ----
 
@@ -63,9 +70,14 @@ export function MemoEditor() {
     api.onOpenMemo((fname) => openFile(fname, 'memo'))
   }, [api, openFile])
 
-  // Load content whenever session changes (new file opened or mode toggled)
+  // Re-read content when sessionId changes (mode toggle, cross-window sync).
+  // openFile already loads content before bumping sessionId, so skip redundant reads.
   useEffect(() => {
     if (!filename) return
+    if (skipNextReadRef.current) {
+      skipNextReadRef.current = false
+      return
+    }
     readFile(filename, fileType).then((c) => {
       setContent(c)
       contentRef.current = c

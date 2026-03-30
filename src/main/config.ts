@@ -78,6 +78,8 @@ export function loadConfig(): AppConfig {
   const raw = readFileSync(cfgFile, 'utf-8')
   const saved = JSON.parse(raw) as Partial<AppConfig>
   const config = { ...DEFAULT_CONFIG, ...saved }
+  // Deep-merge lastWindowState so partial saves don't lose defaults
+  config.lastWindowState = { ...DEFAULT_CONFIG.lastWindowState, ...(saved.lastWindowState || {}) }
   ensureStorageDirs(config.storagePath)
   return config
 }
@@ -90,6 +92,10 @@ export function saveConfig(config: AppConfig): void {
 export function updateConfig(partial: Partial<AppConfig>): AppConfig {
   const config = loadConfig()
   const updated = { ...config, ...partial }
+  // Deep-merge lastWindowState to avoid losing fields when only updating one property
+  if (partial.lastWindowState) {
+    updated.lastWindowState = { ...config.lastWindowState, ...partial.lastWindowState }
+  }
   saveConfig(updated)
   return updated
 }

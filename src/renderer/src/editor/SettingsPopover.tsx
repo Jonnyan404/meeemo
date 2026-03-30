@@ -84,11 +84,25 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
     updateWindowState({ alwaysOnTop: newLevel })
   }
 
+  const THEME_DEFAULTS = {
+    light: { panelColor: '#ffffff', fontColor: '#1a1a1a' },
+    dark: { panelColor: '#1c1c1e', fontColor: '#f2f2f2' }
+  }
+
   const handleThemeToggle = () => {
     const next = theme === 'light' ? 'dark' : 'light'
+    const defaults = THEME_DEFAULTS[next]
     setTheme(next)
+    setPanelColor(defaults.panelColor)
+    setFontColor(defaults.fontColor)
     document.documentElement.setAttribute('data-theme', next)
-    api.configSet({ theme: next })
+    // Clear inline style overrides so CSS [data-theme] rules take effect
+    document.documentElement.style.removeProperty('--panel-bg')
+    document.documentElement.style.removeProperty('--text-primary')
+    api.configSet({
+      theme: next,
+      lastWindowState: { panelColor: defaults.panelColor, fontColor: defaults.fontColor } as any
+    })
   }
 
   return (
