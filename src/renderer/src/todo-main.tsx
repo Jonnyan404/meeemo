@@ -1,11 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { TodoPopover } from './todo/TodoPopover'
 import './styles/global.css'
 
-function App() {
-  return <div className="p-4">Meeemo TODO</div>
-}
-
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><App /></StrictMode>
+  <StrictMode>
+    <TodoPopover />
+  </StrictMode>
 )
