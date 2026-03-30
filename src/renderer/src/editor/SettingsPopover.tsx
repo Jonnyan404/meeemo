@@ -29,7 +29,6 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
       })()
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
-      document.documentElement.style.setProperty('--panel-blur', `${ws.blur}px`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
       document.documentElement.setAttribute('data-theme', config.theme)
     })
