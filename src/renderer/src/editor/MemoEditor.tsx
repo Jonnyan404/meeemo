@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PlainTextEditor } from './PlainTextEditor'
+import { TiptapEditor } from './TiptapEditor'
+import { EditorHeader } from './EditorHeader'
 import { useApi } from '../hooks/use-ipc'
 
 export function MemoEditor() {
@@ -31,6 +33,27 @@ export function MemoEditor() {
     [filename, api]
   )
 
+  const handleRename = useCallback(
+    async (newTitle: string) => {
+      if (!filename) return
+      const newFilename = await api.memoRename(filename, newTitle)
+      setFilename(newFilename)
+    },
+    [filename, api]
+  )
+
+  const handleSwitchMemo = useCallback(
+    (newFilename: string) => {
+      // Flush pending save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        if (filename) api.memoWrite(filename, content)
+      }
+      setFilename(newFilename)
+    },
+    [filename, content, api]
+  )
+
   return (
     <div
       className="flex flex-col h-screen frosted-glass rounded-xl overflow-hidden"
@@ -43,36 +66,22 @@ export function MemoEditor() {
         className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 z-50 transition-colors"
       />
 
-      {/* Header - shown on hover */}
-      <div
-        className={`flex items-center gap-2 px-3 h-10 border-b border-[var(--border-color)] bg-[var(--panel-bg)] transition-all duration-200 flex-shrink-0 ${
-          headerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      >
-        <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm" title="Settings">
-          ⚙
-        </button>
-        <button
-          onClick={() => setMode(mode === 'plain' ? 'wysiwyg' : 'plain')}
-          className="text-xs bg-black/5 px-2 py-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
-          {mode === 'plain' ? 'TXT' : 'MD'}
-        </button>
-
-        <span className="flex-1 text-center text-sm text-[var(--text-secondary)] truncate">
-          {filename ? filename.replace('.md', '') : 'Untitled'}
-        </span>
-
-        <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-lg" title="Menu">
-          ≡
-        </button>
-      </div>
+      <EditorHeader
+        visible={headerVisible}
+        filename={filename}
+        mode={mode}
+        onToggleMode={() => setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))}
+        onSwitchMemo={handleSwitchMemo}
+        onRename={handleRename}
+      />
 
       {/* Editor area */}
       <div className="flex-1 overflow-y-auto">
-        <PlainTextEditor content={content} onChange={handleChange} />
+        {mode === 'plain' ? (
+          <PlainTextEditor content={content} onChange={handleChange} />
+        ) : (
+          <TiptapEditor content={content} onChange={handleChange} />
+        )}
       </div>
     </div>
   )
