@@ -10,6 +10,8 @@ export function MemoEditor() {
   const [content, setContent] = useState('')
   const [mode, setMode] = useState<'plain' | 'wysiwyg'>('wysiwyg')
   const [headerVisible, setHeaderVisible] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [modeKey, setModeKey] = useState(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -54,33 +56,44 @@ export function MemoEditor() {
     [filename, content, api]
   )
 
+  const handleToggleMode = useCallback(() => {
+    setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))
+    setModeKey((k) => k + 1)
+  }, [])
+
+  const showHeader = headerVisible || popoverOpen
+
   return (
     <div
       className="flex flex-col h-screen frosted-glass rounded-xl overflow-hidden"
       onMouseMove={(e) => setHeaderVisible(e.clientY < 48)}
       onMouseLeave={() => setHeaderVisible(false)}
     >
-      {/* Close button - always visible */}
-      <button
-        onClick={() => api.windowClose()}
-        className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 z-50 transition-colors"
-      />
+      {/* Close button - shown only when header is hidden */}
+      {!showHeader && (
+        <button
+          onClick={() => api.windowClose()}
+          className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 z-50 transition-colors"
+        />
+      )}
 
       <EditorHeader
-        visible={headerVisible}
+        visible={showHeader}
         filename={filename}
         mode={mode}
-        onToggleMode={() => setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))}
+        onToggleMode={handleToggleMode}
         onSwitchMemo={handleSwitchMemo}
         onRename={handleRename}
+        onClose={() => api.windowClose()}
+        onPopoverChange={setPopoverOpen}
       />
 
       {/* Editor area */}
       <div className="flex-1 overflow-y-auto">
         {mode === 'plain' ? (
-          <PlainTextEditor content={content} onChange={handleChange} />
+          <PlainTextEditor key={`plain-${modeKey}`} content={content} onChange={handleChange} />
         ) : (
-          <TiptapEditor content={content} onChange={handleChange} />
+          <TiptapEditor key={`wysiwyg-${modeKey}`} content={content} onChange={handleChange} />
         )}
       </div>
     </div>

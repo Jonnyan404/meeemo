@@ -38,18 +38,19 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
   }, [content]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="tiptap-editor p-6 text-[var(--text-primary)] text-sm leading-relaxed min-h-full">
+    <div className="tiptap-editor p-6 text-[var(--text-primary)] text-sm leading-snug min-h-full">
       <EditorContent editor={editor} />
       <style>{`
         .tiptap-editor .tiptap {
           outline: none;
           min-height: 100%;
           color: var(--text-primary);
+          line-height: 1.4;
         }
-        .tiptap-editor .tiptap h1 { font-size: 1.5em; font-weight: 700; margin: 0.5em 0 0.25em; color: var(--text-primary); }
-        .tiptap-editor .tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--text-primary); }
-        .tiptap-editor .tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--text-primary); }
-        .tiptap-editor .tiptap p { margin: 0.25em 0; }
+        .tiptap-editor .tiptap h1 { font-size: 1.5em; font-weight: 700; margin: 0.3em 0 0.15em; line-height: 1.25; color: var(--text-primary); }
+        .tiptap-editor .tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.3em 0 0.15em; line-height: 1.25; color: var(--text-primary); }
+        .tiptap-editor .tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.25em 0 0.1em; line-height: 1.3; color: var(--text-primary); }
+        .tiptap-editor .tiptap p { margin: 0.15em 0; }
         .tiptap-editor .tiptap ul, .tiptap-editor .tiptap ol { padding-left: 1.5em; }
         .tiptap-editor .tiptap code { background: rgba(0,0,0,0.06); padding: 0.15em 0.3em; border-radius: 3px; font-size: 0.9em; font-family: monospace; }
         [data-theme="dark"] .tiptap-editor .tiptap code { background: rgba(255,255,255,0.1); }

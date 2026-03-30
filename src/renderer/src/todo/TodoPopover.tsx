@@ -241,7 +241,19 @@ export function TodoPopover() {
         activeFilename={activeFilename}
         onSelect={setActiveFilename}
         onCreateList={handleCreateList}
-        onSettings={() => {}}
+        onDeleteList={async (filename) => {
+          await api.todoDeleteList(filename)
+          const remaining = lists.filter((l) => l.filename !== filename)
+          if (remaining.length > 0) {
+            setActiveFilename(remaining[0].filename)
+          }
+          loadLists()
+        }}
+        onRenameList={async (filename, newName) => {
+          const newFilename = await api.todoRenameList(filename, newName)
+          setActiveFilename(newFilename)
+          loadLists()
+        }}
       />
     </div>
   )

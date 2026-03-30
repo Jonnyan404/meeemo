@@ -38,6 +38,7 @@ export function createPaletteWindow(): BrowserWindow {
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    visibleOnAllWorkspaces: true,
     vibrancy: 'under-window',
     webPreferences: {
       preload: preloadPath(),
@@ -45,6 +46,8 @@ export function createPaletteWindow(): BrowserWindow {
       nodeIntegration: false
     }
   })
+
+  paletteWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   loadPage(paletteWindow, 'palette')
 
@@ -163,12 +166,15 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    visibleOnAllWorkspaces: true,
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
       nodeIntegration: false
     }
   })
+
+  todoWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   loadPage(todoWindow, 'todo')
 
