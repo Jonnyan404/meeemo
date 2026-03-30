@@ -61,9 +61,20 @@ export function TodoPopover() {
 
   const loadLists = useCallback(async () => {
     const all = await api.todoList()
-    setLists(all)
-    if (!activeFilename && all.length > 0) {
-      setActiveFilename(all[0].filename)
+    // Apply saved tab order from config
+    const config = await api.configGet()
+    const order: string[] = (config as any).todoOrder || []
+    const sorted = [...all].sort((a, b) => {
+      const ai = order.indexOf(a.filename)
+      const bi = order.indexOf(b.filename)
+      if (ai === -1 && bi === -1) return 0
+      if (ai === -1) return 1
+      if (bi === -1) return -1
+      return ai - bi
+    })
+    setLists(sorted)
+    if (!activeFilename && sorted.length > 0) {
+      setActiveFilename(sorted[0].filename)
     }
   }, [api, activeFilename])
 
@@ -257,6 +268,13 @@ export function TodoPopover() {
           const newFilename = await api.todoRenameList(filename, newName)
           setActiveFilename(newFilename)
           loadLists()
+        }}
+        onReorder={(filenames) => {
+          // Reorder lists in state to match drag result
+          const ordered = filenames.map((fn) => lists.find((l) => l.filename === fn)!).filter(Boolean)
+          setLists(ordered)
+          // Persist order in config
+          api.configSet({ todoOrder: filenames } as any)
         }}
       />
     </div>

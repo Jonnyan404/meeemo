@@ -111,7 +111,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">OPACITY</div>
       <div className="flex items-center gap-2 mb-3">
         <input
-          type="range" min="20" max="100"
+          type="range" min="1" max="100"
           value={Math.round(opacity * 100)}
           onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
           className="flex-1 accent-[var(--accent)]"
@@ -143,18 +143,15 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
 
       {/* Window level */}
       <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">WINDOW LEVEL</div>
-      {(['always', 'normal', 'bottom'] as const).map((l) => (
-        <button
-          key={l}
-          onClick={() => handleLevelChange(l)}
-          className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-            level === l ? 'bg-[var(--accent)]/15 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          <span className="mr-2">{level === l ? '●' : '○'}</span>
-          {l === 'always' ? 'Always on Top' : l === 'normal' ? 'Normal' : 'Always on Bottom'}
-        </button>
-      ))}
+      <select
+        value={level}
+        onChange={(e) => handleLevelChange(e.target.value as 'always' | 'normal' | 'bottom')}
+        className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer"
+      >
+        <option value="always">Always on Top</option>
+        <option value="normal">Normal</option>
+        <option value="bottom">Always on Bottom</option>
+      </select>
 
       {/* Close button */}
       <div className="border-t border-[var(--border-color)] mt-2 pt-2">
