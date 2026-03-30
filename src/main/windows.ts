@@ -143,8 +143,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
       todoWindow.hide()
       return todoWindow
     }
-    // showInactive prevents macOS from switching spaces/desktops
-    todoWindow.showInactive()
+    todoWindow.show()
     return todoWindow
   }
 
@@ -168,8 +167,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     transparent: true,
     resizable: false,
     skipTaskbar: true,
-    alwaysOnTop: true,
-    visibleOnAllWorkspaces: true,
+    type: 'panel', // NSPanel — non-activating, won't switch macOS spaces
     vibrancy: 'under-window',
     visualEffectState: 'active',
     webPreferences: {
@@ -179,11 +177,9 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     }
   })
 
-  todoWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
-
   loadPage(todoWindow, 'todo')
 
-  todoWindow.once('ready-to-show', () => todoWindow?.showInactive())
+  todoWindow.once('ready-to-show', () => todoWindow?.show())
   todoWindow.on('blur', () => todoWindow?.hide())
   todoWindow.on('closed', () => { todoWindow = null })
 

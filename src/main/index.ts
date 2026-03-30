@@ -6,6 +6,10 @@ import { togglePalette, createEditorWindow, hidePalette, createTodoWindow } from
 import { createTray, updateTrayBadge, getTray } from './tray'
 
 app.whenReady().then(() => {
+  // Hide dock icon — this is a menu bar app. Also prevents space switching
+  // when showing tray popover windows (no app activation = no space switch).
+  if (process.platform === 'darwin') app.dock.hide()
+
   const config = loadConfig()
 
   registerIpcHandlers()
