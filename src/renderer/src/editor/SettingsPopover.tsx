@@ -55,7 +55,8 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const handleOpacityChange = (value: number) => {
     setOpacity(value)
     applyPanelBg(panelColor, value)
-    api.windowSetOpacity(Math.max(value, 0.4)) // window-level opacity minimum
+    // NOTE: Do NOT call windowSetOpacity — native window opacity breaks vibrancy
+    // on macOS Sequoia. Panel transparency is CSS-only via --panel-bg alpha.
     updateWindowState({ opacity: value })
   }
 

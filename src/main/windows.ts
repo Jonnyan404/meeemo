@@ -33,8 +33,9 @@ export function createPaletteWindow(): BrowserWindow {
     x: Math.round((screenW - 600) / 2),
     y: Math.round(screenH * 0.2),
     show: false,
-    frame: false,
-    transparent: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false,
+    trafficLightPosition: { x: -20, y: -20 },
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
@@ -87,8 +88,9 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     x: ws.x >= 0 ? ws.x : screenW - ws.width - 40,
     y: ws.y >= 0 ? ws.y : 40,
     show: false,
-    frame: false,
-    transparent: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false,
+    trafficLightPosition: { x: -20, y: -20 }, // hide traffic lights offscreen
     resizable: true,
     minimizable: false,
     skipTaskbar: true,
@@ -101,7 +103,8 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     }
   })
 
-  editorWindow.setOpacity(ws.opacity)
+  // NOTE: Do NOT call setOpacity() — it breaks vibrancy on macOS Sequoia (Tabby #10416).
+  // Panel transparency is controlled via CSS --panel-bg alpha instead.
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
   } else if (ws.alwaysOnTop === 'bottom') {
@@ -177,8 +180,9 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     x: pos.x,
     y: pos.y,
     show: false,
-    frame: false,
-    transparent: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false,
+    trafficLightPosition: { x: -20, y: -20 },
     resizable: false,
     skipTaskbar: true,
     type: 'panel', // NSPanel — non-activating, won't switch macOS spaces
