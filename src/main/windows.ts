@@ -39,6 +39,8 @@ export function createPaletteWindow(): BrowserWindow {
     skipTaskbar: true,
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -85,9 +87,8 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     x: ws.x >= 0 ? ws.x : screenW - ws.width - 40,
     y: ws.y >= 0 ? ws.y : 40,
     show: false,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: false,
-    trafficLightPosition: { x: -20, y: -20 }, // hide traffic lights offscreen
+    frame: false,
+    transparent: true,
     resizable: true,
     minimizable: false,
     skipTaskbar: true,
@@ -100,8 +101,7 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     }
   })
 
-  // NOTE: Do NOT call setOpacity() — it breaks vibrancy on macOS Sequoia (Tabby #10416).
-  // Panel transparency is controlled via CSS --panel-bg alpha instead.
+  editorWindow.setOpacity(ws.opacity)
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
   } else if (ws.alwaysOnTop === 'bottom') {
@@ -145,7 +145,6 @@ function todoPosition(trayBounds?: Electron.Rectangle): { x: number; y: number }
       y: trayBounds.y + trayBounds.height + 4
     }
   }
-  // Fallback: top-right of cursor's display
   const cursor = screen.getCursorScreenPoint()
   const display = screen.getDisplayNearestPoint(cursor)
   return {
@@ -160,7 +159,6 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
       todoWindow.hide()
       return todoWindow
     }
-    // Reposition to current tray location (may be on different display)
     const pos = todoPosition(trayBounds)
     todoWindow.setPosition(pos.x, pos.y)
     todoWindow.show()
@@ -181,7 +179,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     transparent: true,
     resizable: false,
     skipTaskbar: true,
-    type: 'panel', // NSPanel — non-activating, won't switch macOS spaces
+    type: 'panel',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,

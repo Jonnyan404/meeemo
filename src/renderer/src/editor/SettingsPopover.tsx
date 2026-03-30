@@ -32,13 +32,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
       document.documentElement.setAttribute('data-theme', config.theme)
       // Apply saved vibrancy state
-      if (ws.blur > 0) {
-        api.windowSetVibrancy('under-window')
-        api.windowSetOpacity(1.0)
-      } else {
-        api.windowSetVibrancy(null)
-        api.windowSetOpacity(Math.max(ws.opacity, 0.4))
-      }
+      api.windowSetVibrancy(ws.blur > 0 ? 'under-window' : null)
     })
   }, [api])
 
@@ -61,26 +55,16 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const handleOpacityChange = (value: number) => {
     setOpacity(value)
     applyPanelBg(panelColor, value)
-    // Only use native window opacity when vibrancy is off (blur=0),
-    // because setOpacity breaks vibrancy on macOS Sequoia.
-    if (blur === 0) {
-      api.windowSetOpacity(Math.max(value, 0.4))
-    }
+    api.windowSetOpacity(Math.max(value, 0.4))
     updateWindowState({ opacity: value })
   }
 
   const handleBlurChange = (value: number) => {
     setBlur(value)
     // Toggle native vibrancy: blur > 0 = frosted glass, blur = 0 = no blur
-    if (value > 0) {
-      api.windowSetVibrancy('under-window')
-      api.windowSetOpacity(1.0) // must be 1.0 when vibrancy active
-    } else {
-      api.windowSetVibrancy(null)
-      api.windowSetOpacity(Math.max(opacity, 0.4)) // restore opacity control
-    }
+    api.windowSetVibrancy(value > 0 ? 'under-window' : null)
     // Higher blur = more transparent panel = more vibrancy visible
-    const blurAlpha = 1 - (value / 40) // blur 0 = fully opaque, blur 30 = 25% transparent
+    const blurAlpha = 1 - (value / 40)
     applyPanelBg(panelColor, Math.min(opacity, blurAlpha))
     updateWindowState({ blur: value })
   }
