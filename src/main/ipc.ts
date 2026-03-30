@@ -90,7 +90,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('window:set-vibrancy', (e, vibrancy: string | null) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (!win) return
-    win.setVibrancy((vibrancy as any) ?? null)
+    const nativeVibrancy = (() => {
+      try { return require('../../native/macos-vibrancy') }
+      catch { return null }
+    })()
+    if (!nativeVibrancy) return
+    if (vibrancy) {
+      nativeVibrancy.setVibrancy(win.getNativeWindowHandle(), vibrancy)
+    } else {
+      nativeVibrancy.removeVibrancy(win.getNativeWindowHandle())
+    }
   })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }

@@ -30,9 +30,13 @@ html, body, #root {
 
 .frosted-glass {
   background: var(--panel-bg);
-  /* NOTE: Do NOT use backdrop-filter here. Electron's vibrancy: 'under-window'
-     applies native NSVisualEffectView blur at the OS level. Adding CSS
-     backdrop-filter on top causes broken double-rendering (Chromium bug
-     https://issues.chromium.org/issues/380416865, electron#39529).
-     The semi-transparent --panel-bg tints the native blur — that's all we need. */
+}
+
+.frosted-fixed {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+[data-theme="dark"] .frosted-fixed {
+  background: rgba(28, 28, 30, 0.5);
 }

@@ -1,0 +1,12 @@
+{
+  "name": "macos-vibrancy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "install": "echo 'skip auto-build, use electron-rebuild'"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.4.0"
+  }
+}

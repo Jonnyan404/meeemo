@@ -3,3 +3,7 @@ out/
 dist/
 *.local
 .DS_Store
+native/macos-vibrancy/build/
+native/macos-vibrancy/node_modules/
+native/macos-vibrancy/prebuilds/
+*.node

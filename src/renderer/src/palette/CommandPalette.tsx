@@ -131,7 +131,7 @@ export function CommandPalette() {
   }
 
   return (
-    <div className="flex flex-col h-full frosted-glass rounded-xl overflow-hidden border border-[var(--border-color)]">
+    <div className="flex flex-col h-full frosted-fixed rounded-xl overflow-hidden border border-[var(--border-color)]">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-color)]">
         <span className="text-[var(--text-secondary)] text-sm">🔍</span>
         <input

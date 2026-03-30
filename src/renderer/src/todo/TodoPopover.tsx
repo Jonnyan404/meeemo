@@ -151,7 +151,7 @@ export function TodoPopover() {
 
   return (
     <div
-      className="frosted-glass flex flex-col h-screen rounded-xl overflow-hidden"
+      className="frosted-fixed flex flex-col h-screen rounded-xl overflow-hidden"
       style={{ border: '1px solid var(--border-color)' }}
     >
       {/* Header */}

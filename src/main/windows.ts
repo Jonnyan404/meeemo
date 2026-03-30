@@ -2,6 +2,12 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { loadConfig, updateConfig } from './config'
 
+// Native macOS vibrancy addon — bypasses Electron's broken built-in vibrancy
+const nativeVibrancy = (() => {
+  try { return require('../../native/macos-vibrancy') }
+  catch { return { setVibrancy() {}, removeVibrancy() {} } }
+})()
+
 let paletteWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
 let todoWindow: BrowserWindow | null = null
@@ -20,18 +26,28 @@ function loadPage(win: BrowserWindow, page: string): void {
 
 export function createPaletteWindow(): BrowserWindow {
   if (paletteWindow && !paletteWindow.isDestroyed()) {
+    // Reposition to cursor's display for multi-monitor
+    const cur = screen.getCursorScreenPoint()
+    const disp = screen.getDisplayNearestPoint(cur)
+    const pw = paletteWindow.getBounds().width
+    paletteWindow.setPosition(
+      Math.round(disp.workArea.x + (disp.workArea.width - pw) / 2),
+      Math.round(disp.workArea.y + disp.workArea.height * 0.2)
+    )
     paletteWindow.show()
     paletteWindow.focus()
     return paletteWindow
   }
 
-  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  const { x: dx, y: dy, width: dw, height: dh } = display.workArea
 
   paletteWindow = new BrowserWindow({
     width: 600,
     height: 500,
-    x: Math.round((screenW - 600) / 2),
-    y: Math.round(screenH * 0.2),
+    x: Math.round(dx + (dw - 600) / 2),
+    y: Math.round(dy + dh * 0.2),
     show: false,
     frame: false,
     transparent: true,
@@ -39,8 +55,6 @@ export function createPaletteWindow(): BrowserWindow {
     skipTaskbar: true,
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -92,8 +106,6 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     resizable: true,
     minimizable: false,
     skipTaskbar: true,
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -102,6 +114,11 @@ export function createEditorWindow(filename?: string): BrowserWindow {
   })
 
   editorWindow.setOpacity(ws.opacity)
+
+  // Apply native vibrancy if blur is enabled
+  if (ws.blur > 0) {
+    nativeVibrancy.setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
+  }
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
   } else if (ws.alwaysOnTop === 'bottom') {
