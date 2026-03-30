@@ -40,6 +40,7 @@ export function createPaletteWindow(): BrowserWindow {
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
     vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -92,6 +93,7 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     minimizable: false,
     skipTaskbar: true,
     vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -141,8 +143,8 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
       todoWindow.hide()
       return todoWindow
     }
-    todoWindow.show()
-    todoWindow.focus()
+    // showInactive prevents macOS from switching spaces/desktops
+    todoWindow.showInactive()
     return todoWindow
   }
 
@@ -169,6 +171,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
     vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -180,7 +183,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
 
   loadPage(todoWindow, 'todo')
 
-  todoWindow.once('ready-to-show', () => todoWindow?.show())
+  todoWindow.once('ready-to-show', () => todoWindow?.showInactive())
   todoWindow.on('blur', () => todoWindow?.hide())
   todoWindow.on('closed', () => { todoWindow = null })
 

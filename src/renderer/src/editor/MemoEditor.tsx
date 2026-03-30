@@ -17,28 +17,36 @@ export function MemoEditor() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentRef = useRef(content)
   const [editorKey, setEditorKey] = useState(0)
+  const filenameRef = useRef(filename)
+  filenameRef.current = filename
 
   useEffect(() => {
     api.onOpenMemo((fname) => {
+      cancelPendingSave()
       setFilename(fname)
       setFileType('memo')
+      setEditorKey((k) => k + 1)
     })
   }, [api])
 
+  // Cross-window sync: re-read file when other windows change data
   useEffect(() => {
     api.onDataChanged(() => {
-      if (filename) {
-        const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
-        readFn(filename).then((c) => {
-          // Only update if content actually changed (avoid cursor jump)
-          if (c !== contentRef.current) {
-            setContent(c)
-            contentRef.current = c
-          }
-        })
-      }
+      if (!filenameRef.current) return
+      const fn = filenameRef.current
+      const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
+      readFn(fn).then((c) => {
+        if (c !== contentRef.current) {
+          setContent(c)
+          contentRef.current = c
+          // Force Tiptap remount to pick up new content
+          if (mode === 'wysiwyg') setEditorKey((k) => k + 1)
+        }
+      }).catch(() => {
+        // File might have been deleted
+      })
     })
-  }, [api, filename, fileType])
+  }, [api, fileType, mode])
 
   // Load content when filename changes
   useEffect(() => {
@@ -47,8 +55,15 @@ export function MemoEditor() {
     readFn(filename).then((c) => {
       setContent(c)
       contentRef.current = c
-    })
+    }).catch(() => {})
   }, [filename, fileType, api])
+
+  function cancelPendingSave() {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
+    }
+  }
 
   const writeFn = useCallback(
     (fname: string, c: string) => {
@@ -61,13 +76,16 @@ export function MemoEditor() {
     (newContent: string) => {
       setContent(newContent)
       contentRef.current = newContent
-      if (!filename) return
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      if (!filenameRef.current) return
+      cancelPendingSave()
+      const fn = filenameRef.current
       saveTimeoutRef.current = setTimeout(() => {
-        writeFn(filename, newContent)
+        writeFn(fn, newContent)
+        // Also update tray badge if editing a todo file
+        ;(window as any).__electron_ipc_send?.('update-tray-badge')
       }, 500)
     },
-    [filename, writeFn]
+    [writeFn]
   )
 
   const handleRename = useCallback(
@@ -79,32 +97,37 @@ export function MemoEditor() {
     [filename, fileType, api]
   )
 
+  // Switch memo: flush current content first, then switch
   const handleSwitchMemo = useCallback(
-    (newFilename: string) => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-        if (filename) writeFn(filename, contentRef.current)
+    async (newFilename: string) => {
+      // Flush pending save for current file
+      cancelPendingSave()
+      if (filename && contentRef.current) {
+        await writeFn(filename, contentRef.current).catch(() => {})
       }
       setFileType('memo')
       setFilename(newFilename)
+      setEditorKey((k) => k + 1)
     },
     [filename, writeFn]
   )
 
   const handleSwitchTodo = useCallback(
-    (newFilename: string) => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-        if (filename) writeFn(filename, contentRef.current)
+    async (newFilename: string) => {
+      cancelPendingSave()
+      if (filename && contentRef.current) {
+        await writeFn(filename, contentRef.current).catch(() => {})
       }
       setFileType('todo')
       setFilename(newFilename)
+      setEditorKey((k) => k + 1)
     },
     [filename, writeFn]
   )
 
   const handleToggleMode = useCallback(async () => {
     if (filename && contentRef.current) {
+      cancelPendingSave()
       await writeFn(filename, contentRef.current)
       const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
       const freshContent = await readFn(filename)
@@ -143,10 +166,16 @@ export function MemoEditor() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        {mode === 'plain' ? (
-          <PlainTextEditor key={`plain-${editorKey}`} content={content} onChange={handleChange} />
+        {filename ? (
+          mode === 'plain' ? (
+            <PlainTextEditor key={`plain-${editorKey}`} content={content} onChange={handleChange} />
+          ) : (
+            <TiptapEditor key={`wysiwyg-${editorKey}`} content={content} onChange={handleChange} />
+          )
         ) : (
-          <TiptapEditor key={`wysiwyg-${editorKey}`} content={content} onChange={handleChange} />
+          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+            Open a memo from the command palette (⌥ Space)
+          </div>
         )}
       </div>
     </div>

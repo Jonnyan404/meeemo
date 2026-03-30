@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync, unlinkSync, renameSync, statSync } from 'fs'
+import { readdirSync, readFileSync, writeFileSync, unlinkSync, renameSync, statSync, existsSync } from 'fs'
 import { join, basename } from 'path'
 import { loadConfig } from './config'
 
@@ -56,7 +56,10 @@ export function readMemo(filename: string): string {
 }
 
 export function writeMemo(filename: string, content: string): void {
-  writeFileSync(join(memoDir(), filename), content)
+  // Guard: don't write to a deleted file
+  const filepath = join(memoDir(), filename)
+  if (!existsSync(filepath)) return
+  writeFileSync(filepath, content)
 }
 
 function sanitizeFilename(name: string): string {
@@ -64,13 +67,24 @@ function sanitizeFilename(name: string): string {
 }
 
 export function createMemo(title: string): string {
-  const filename = `${sanitizeFilename(title)}.md`
-  writeFileSync(join(memoDir(), filename), '')
+  const dir = memoDir()
+  const base = sanitizeFilename(title)
+  let filename = `${base}.md`
+  let counter = 1
+  // Duplicate detection: add counter suffix
+  while (existsSync(join(dir, filename))) {
+    counter++
+    filename = `${base} ${counter}.md`
+  }
+  writeFileSync(join(dir, filename), '')
   return filename
 }
 
 export function deleteMemo(filename: string): void {
-  unlinkSync(join(memoDir(), filename))
+  const filepath = join(memoDir(), filename)
+  if (existsSync(filepath)) {
+    unlinkSync(filepath)
+  }
 }
 
 export function renameMemo(oldFilename: string, newTitle: string): string {
