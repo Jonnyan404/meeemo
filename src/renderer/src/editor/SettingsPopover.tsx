@@ -23,6 +23,15 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setFontColor(ws.fontColor)
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
+      // Apply saved values to CSS
+      const { r, g, b } = (() => {
+        const hex = ws.panelColor
+        return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
+      })()
+      document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
+      document.documentElement.style.setProperty('--panel-blur', `${ws.blur}px`)
+      document.documentElement.style.setProperty('--text-primary', ws.fontColor)
+      document.documentElement.setAttribute('data-theme', config.theme)
     })
   }, [api])
 
@@ -30,9 +39,22 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
     api.configSet({ lastWindowState: partial } as any)
   }
 
+  const hexToRgb = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return { r, g, b }
+  }
+
+  const applyPanelBg = (color: string, alpha: number) => {
+    const { r, g, b } = hexToRgb(color)
+    document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${alpha})`)
+  }
+
   const handleOpacityChange = (value: number) => {
     setOpacity(value)
-    api.windowSetOpacity(value)
+    applyPanelBg(panelColor, value)
+    api.windowSetOpacity(Math.max(value, 0.4)) // window-level opacity minimum
     updateWindowState({ opacity: value })
   }
 
@@ -44,6 +66,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
 
   const handlePanelColorChange = (value: string) => {
     setPanelColor(value)
+    applyPanelBg(value, opacity)
     updateWindowState({ panelColor: value })
   }
 

@@ -34,9 +34,9 @@ export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDe
   const handleCreate = () => {
     if (newName.trim()) {
       onCreateList(newName.trim())
-      setNewName('')
-      setIsCreating(false)
     }
+    setNewName('')
+    setIsCreating(false)
   }
 
   const handleStartRename = () => {
@@ -90,10 +90,10 @@ export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDe
           autoFocus
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          onBlur={handleCreate}
+          onBlur={() => handleCreate()}
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleCreate()
-            if (e.key === 'Escape') setIsCreating(false)
+            if (e.key === 'Escape') { setNewName(''); setIsCreating(false) }
           }}
           className="text-xs px-2 py-1.5 rounded-lg outline-none w-16"
           style={{

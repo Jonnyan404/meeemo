@@ -11,8 +11,8 @@ export function MemoEditor() {
   const [mode, setMode] = useState<'plain' | 'wysiwyg'>('wysiwyg')
   const [headerVisible, setHeaderVisible] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [modeKey, setModeKey] = useState(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentRef = useRef(content)
 
   useEffect(() => {
     api.onOpenMemo((fname) => setFilename(fname))
@@ -26,6 +26,7 @@ export function MemoEditor() {
   const handleChange = useCallback(
     (newContent: string) => {
       setContent(newContent)
+      contentRef.current = newContent
       if (!filename) return
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = setTimeout(() => {
@@ -57,9 +58,12 @@ export function MemoEditor() {
   )
 
   const handleToggleMode = useCallback(() => {
+    // Flush current content to file before switching to prevent loss
+    if (filename && contentRef.current) {
+      api.memoWrite(filename, contentRef.current)
+    }
     setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))
-    setModeKey((k) => k + 1)
-  }, [])
+  }, [filename, api])
 
   const showHeader = headerVisible || popoverOpen
 
@@ -91,9 +95,9 @@ export function MemoEditor() {
       {/* Editor area */}
       <div className="flex-1 overflow-y-auto">
         {mode === 'plain' ? (
-          <PlainTextEditor key={`plain-${modeKey}`} content={content} onChange={handleChange} />
+          <PlainTextEditor key={`plain-${filename}`} content={content} onChange={handleChange} />
         ) : (
-          <TiptapEditor key={`wysiwyg-${modeKey}`} content={content} onChange={handleChange} />
+          <TiptapEditor key={`wysiwyg-${filename}`} content={content} onChange={handleChange} />
         )}
       </div>
     </div>

@@ -20,22 +20,19 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       TaskItem.configure({ nested: true }),
       Markdown.configure({ html: false })
     ],
-    content,
+    content: content,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       if (isUpdatingRef.current) return
-      const md = (editor as any).storage.markdown.getMarkdown()
-      onChange(md)
+      try {
+        const md = (editor as any).storage.markdown.getMarkdown()
+        onChange(md)
+      } catch {
+        // fallback: get text content
+        onChange(editor.getText())
+      }
     }
   })
-
-  // Sync content from outside (e.g., file switch)
-  useEffect(() => {
-    if (!editor || editor.isDestroyed) return
-    isUpdatingRef.current = true
-    editor.commands.setContent(content, false, { preserveWhitespace: 'full' })
-    isUpdatingRef.current = false
-  }, [content]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="tiptap-editor p-6 text-[var(--text-primary)] text-sm leading-snug min-h-full">

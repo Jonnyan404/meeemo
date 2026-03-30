@@ -91,6 +91,7 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     resizable: true,
     minimizable: false,
     skipTaskbar: true,
+    vibrancy: 'under-window',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -167,6 +168,7 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
     skipTaskbar: true,
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
+    vibrancy: 'under-window',
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
