@@ -137,31 +137,45 @@ export function createEditorWindow(filename?: string): BrowserWindow {
   return editorWindow
 }
 
+function todoPosition(trayBounds?: Electron.Rectangle): { x: number; y: number } {
+  const w = 300
+  if (trayBounds) {
+    return {
+      x: Math.round(trayBounds.x + trayBounds.width / 2 - w / 2),
+      y: trayBounds.y + trayBounds.height + 4
+    }
+  }
+  // Fallback: top-right of cursor's display
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  return {
+    x: display.bounds.x + display.bounds.width - w - 20,
+    y: display.bounds.y + 30
+  }
+}
+
 export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow {
   if (todoWindow && !todoWindow.isDestroyed()) {
     if (todoWindow.isVisible()) {
       todoWindow.hide()
       return todoWindow
     }
+    // Reposition to current tray location (may be on different display)
+    const pos = todoPosition(trayBounds)
+    todoWindow.setPosition(pos.x, pos.y)
     todoWindow.show()
     return todoWindow
   }
 
   const w = 300
   const h = 400
-  let x = 0
-  let y = 0
-
-  if (trayBounds) {
-    x = Math.round(trayBounds.x + trayBounds.width / 2 - w / 2)
-    y = trayBounds.y + trayBounds.height + 4
-  }
+  const pos = todoPosition(trayBounds)
 
   todoWindow = new BrowserWindow({
     width: w,
     height: h,
-    x,
-    y,
+    x: pos.x,
+    y: pos.y,
     show: false,
     frame: false,
     transparent: true,

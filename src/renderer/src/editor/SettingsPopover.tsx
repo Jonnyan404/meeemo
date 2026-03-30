@@ -31,6 +31,8 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
       document.documentElement.setAttribute('data-theme', config.theme)
+      // Apply saved vibrancy state
+      api.windowSetVibrancy(ws.blur > 0 ? 'under-window' : null)
     })
   }, [api])
 
@@ -59,7 +61,9 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
 
   const handleBlurChange = (value: number) => {
     setBlur(value)
-    // Higher blur value = more transparent panel = more vibrancy visible
+    // Toggle native vibrancy: blur > 0 = frosted glass, blur = 0 = no blur
+    api.windowSetVibrancy(value > 0 ? 'under-window' : null)
+    // Higher blur = more transparent panel = more vibrancy visible
     const blurAlpha = 1 - (value / 40) // blur 0 = fully opaque, blur 30 = 25% transparent
     applyPanelBg(panelColor, Math.min(opacity, blurAlpha))
     updateWindowState({ blur: value })

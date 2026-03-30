@@ -22,6 +22,7 @@ const api = {
   configSet: (partial: Record<string, unknown>) => ipcRenderer.invoke('config:set', partial),
   windowSetOpacity: (opacity: number) => ipcRenderer.invoke('window:set-opacity', opacity),
   windowSetLevel: (level: 'always' | 'normal' | 'bottom') => ipcRenderer.invoke('window:set-level', level),
+  windowSetVibrancy: (vibrancy: string | null) => ipcRenderer.invoke('window:set-vibrancy', vibrancy),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
     ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))

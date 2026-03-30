@@ -87,5 +87,10 @@ export function registerIpcHandlers(): void {
     else if (level === 'bottom') win.setAlwaysOnTop(true, 'utility', -1)
     else win.setAlwaysOnTop(false)
   })
+  ipcMain.handle('window:set-vibrancy', (e, vibrancy: string | null) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (!win) return
+    win.setVibrancy((vibrancy as any) ?? null)
+  })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }
