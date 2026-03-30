@@ -12,6 +12,9 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [fontColor, setFontColor] = useState('#1a1a1a')
   const [level, setLevel] = useState<'always' | 'normal' | 'bottom'>('always')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [shortcut, setShortcut] = useState('Alt+Space')
+  const [isRecording, setIsRecording] = useState(false)
+  const [shortcutError, setShortcutError] = useState('')
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -21,6 +24,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setFontColor(ws.fontColor)
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
+      setShortcut(config.globalShortcut || 'Alt+Space')
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
@@ -68,6 +72,30 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
     updateWindowState({ alwaysOnTop: newLevel })
   }
 
+  const handleShortcutRecord = (e: React.KeyboardEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const parts: string[] = []
+    if (e.metaKey) parts.push('Command')
+    if (e.ctrlKey) parts.push('Control')
+    if (e.altKey) parts.push('Alt')
+    if (e.shiftKey) parts.push('Shift')
+    const key = e.key
+    if (!['Meta', 'Control', 'Alt', 'Shift'].includes(key)) {
+      parts.push(key === ' ' ? 'Space' : key.length === 1 ? key.toUpperCase() : key)
+      const combo = parts.join('+')
+      setIsRecording(false)
+      setShortcutError('')
+      api.windowSetShortcut(combo).then((res: any) => {
+        if (res?.error) {
+          setShortcutError(res.error)
+        } else {
+          setShortcut(combo)
+        }
+      })
+    }
+  }
+
   const THEME_DEFAULTS = {
     light: { panelColor: '#ffffff', fontColor: '#1a1a1a' },
     dark: { panelColor: '#1c1c1e', fontColor: '#f2f2f2' }
@@ -90,7 +118,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
 
   return (
     <div
-      className="absolute top-10 left-2 w-56 frosted-fixed rounded-lg border border-[var(--border-color)] shadow-xl z-50 p-3"
+      className="absolute top-10 right-16 w-56 frosted-fixed rounded-lg border border-[var(--border-color)] shadow-xl z-50 p-3"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       onClick={(e) => e.stopPropagation()}
     >
@@ -153,15 +181,29 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         <option value="bottom">Always on Bottom</option>
       </select>
 
-      {/* Close button */}
-      <div className="border-t border-[var(--border-color)] mt-2 pt-2">
-        <button
-          onClick={onClose}
-          className="w-full text-center text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] py-1"
+      {/* Shortcut */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mt-3 mb-2">SHORTCUT</div>
+      {isRecording ? (
+        <div
+          className="w-full px-2 py-1.5 rounded text-sm text-center border-2 border-[var(--accent)] text-[var(--accent)] outline-none animate-pulse"
+          tabIndex={0}
+          autoFocus
+          onKeyDown={handleShortcutRecord}
+          onBlur={() => setIsRecording(false)}
         >
-          Close
+          Press shortcut...
+        </div>
+      ) : (
+        <button
+          onClick={() => { setIsRecording(true); setShortcutError('') }}
+          className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] text-center cursor-pointer hover:bg-black/8"
+        >
+          {shortcut}
         </button>
-      </div>
+      )}
+      {shortcutError && (
+        <div className="text-[10px] text-red-500 mt-1">{shortcutError}</div>
+      )}
     </div>
   )
 }

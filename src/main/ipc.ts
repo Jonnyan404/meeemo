@@ -1,4 +1,4 @@
-import { app, ipcMain, BrowserWindow } from 'electron'
+import { app, globalShortcut, ipcMain, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
@@ -99,6 +99,14 @@ export function registerIpcHandlers(): void {
     } else {
       addon.removeVibrancy(win.getNativeWindowHandle())
     }
+  })
+  ipcMain.handle('window:set-shortcut', (_e, shortcut: string) => {
+    const { togglePalette } = require('./windows')
+    globalShortcut.unregisterAll()
+    const ok = globalShortcut.register(shortcut, () => togglePalette())
+    if (!ok) return { error: `Failed to register "${shortcut}"` }
+    updateConfig({ globalShortcut: shortcut })
+    return { ok: true }
   })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }

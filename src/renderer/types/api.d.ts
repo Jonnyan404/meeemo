@@ -35,6 +35,7 @@ interface MeeemoAPI {
   windowSetOpacity(opacity: number): Promise<void>
   windowSetLevel(level: 'always' | 'normal' | 'bottom'): Promise<void>
   windowSetVibrancy(vibrancy: string | null): Promise<void>
+  windowSetShortcut(shortcut: string): Promise<{ ok?: boolean; error?: string }>
   windowClose(): Promise<void>
   onOpenMemo(callback: (filename: string) => void): void
   onShowTodo(callback: () => void): void

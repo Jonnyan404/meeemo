@@ -23,6 +23,7 @@ const api = {
   windowSetOpacity: (opacity: number) => ipcRenderer.invoke('window:set-opacity', opacity),
   windowSetLevel: (level: 'always' | 'normal' | 'bottom') => ipcRenderer.invoke('window:set-level', level),
   windowSetVibrancy: (vibrancy: string | null) => ipcRenderer.invoke('window:set-vibrancy', vibrancy),
+  windowSetShortcut: (shortcut: string) => ipcRenderer.invoke('window:set-shortcut', shortcut),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
     ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))

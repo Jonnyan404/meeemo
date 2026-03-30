@@ -170,7 +170,7 @@ export function MemoEditor() {
       {!showHeader && (
         <button
           onClick={() => api.windowClose()}
-          className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 z-50 transition-colors"
+          className="absolute top-3 left-3 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 z-50 transition-colors"
         />
       )}
 
