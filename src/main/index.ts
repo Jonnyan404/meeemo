@@ -1,6 +1,7 @@
 import { app, globalShortcut, ipcMain } from 'electron'
 import { registerIpcHandlers } from './ipc'
 import { loadConfig } from './config'
+import { createMemo } from './memo-service'
 import { togglePalette, createEditorWindow, hidePalette, createTodoWindow } from './windows'
 import { createTray, updateTrayBadge, getTray } from './tray'
 
@@ -22,7 +23,6 @@ app.whenReady().then(() => {
 
   ipcMain.on('create-and-open-memo', (_e, title: string) => {
     hidePalette()
-    const { createMemo } = require('./memo-service')
     const filename = createMemo(title)
     createEditorWindow(filename)
   })
