@@ -321,6 +321,23 @@ Create `src/renderer/src/styles/global.css`:
 ```css
 @import 'tailwindcss';
 
+:root {
+  --panel-bg: rgba(255, 255, 255, 0.85);
+  --panel-blur: 20px;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --accent: #007aff;
+}
+
+[data-theme="dark"] {
+  --panel-bg: rgba(28, 28, 30, 0.85);
+  --text-primary: #f2f2f2;
+  --text-secondary: #8e8e93;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --accent: #5b8def;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -328,9 +345,15 @@ html, body, #root {
   overflow: hidden;
   background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #f2f2f2;
+  color: var(--text-primary);
   -webkit-app-region: no-drag;
   user-select: none;
+}
+
+.frosted-glass {
+  background: var(--panel-bg);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
 }
 ```
 
@@ -425,6 +448,9 @@ export interface WindowState {
   width: number
   height: number
   opacity: number
+  blur: number
+  panelColor: string
+  fontColor: string
   alwaysOnTop: 'always' | 'normal' | 'bottom'
 }
 
@@ -432,6 +458,7 @@ export interface AppConfig {
   storagePath: string
   pinnedMemos: string[]
   globalShortcut: string
+  theme: 'light' | 'dark'
   lastWindowState: WindowState
 }
 
@@ -439,12 +466,16 @@ const DEFAULT_CONFIG: AppConfig = {
   storagePath: join(homedir(), 'meeemo'),
   pinnedMemos: [],
   globalShortcut: 'Alt+Space',
+  theme: 'light',
   lastWindowState: {
     x: -1,
     y: -1,
     width: 400,
     height: 450,
-    opacity: 1.0,
+    opacity: 0.85,
+    blur: 20,
+    panelColor: '#ffffff',
+    fontColor: '#1a1a1a',
     alwaysOnTop: 'normal'
   }
 }
@@ -840,12 +871,16 @@ interface AppConfig {
   storagePath: string
   pinnedMemos: string[]
   globalShortcut: string
+  theme: 'light' | 'dark'
   lastWindowState: {
     x: number
     y: number
     width: number
     height: number
     opacity: number
+    blur: number
+    panelColor: string
+    fontColor: string
     alwaysOnTop: 'always' | 'normal' | 'bottom'
   }
 }
@@ -1820,68 +1855,143 @@ interface SettingsPopoverProps {
 
 export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const api = useApi()
-  const [opacity, setOpacity] = useState(1.0)
+  const [opacity, setOpacity] = useState(0.85)
+  const [blur, setBlur] = useState(20)
+  const [panelColor, setPanelColor] = useState('#ffffff')
+  const [fontColor, setFontColor] = useState('#1a1a1a')
   const [level, setLevel] = useState<'always' | 'normal' | 'bottom'>('normal')
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     api.configGet().then((config) => {
-      setOpacity(config.lastWindowState.opacity)
-      setLevel(config.lastWindowState.alwaysOnTop)
+      const ws = config.lastWindowState
+      setOpacity(ws.opacity)
+      setBlur(ws.blur)
+      setPanelColor(ws.panelColor)
+      setFontColor(ws.fontColor)
+      setLevel(ws.alwaysOnTop)
+      setTheme(config.theme)
     })
   }, [api])
+
+  const updateWindowState = (partial: Record<string, unknown>) => {
+    api.configSet({ lastWindowState: partial } as any)
+  }
 
   const handleOpacityChange = (value: number) => {
     setOpacity(value)
     api.windowSetOpacity(value)
-    api.configSet({ lastWindowState: { opacity: value } } as any)
+    updateWindowState({ opacity: value })
+  }
+
+  const handleBlurChange = (value: number) => {
+    setBlur(value)
+    document.documentElement.style.setProperty('--panel-blur', `${value}px`)
+    updateWindowState({ blur: value })
+  }
+
+  const handlePanelColorChange = (value: string) => {
+    setPanelColor(value)
+    updateWindowState({ panelColor: value })
+  }
+
+  const handleFontColorChange = (value: string) => {
+    setFontColor(value)
+    document.documentElement.style.setProperty('--text-primary', value)
+    updateWindowState({ fontColor: value })
   }
 
   const handleLevelChange = (newLevel: 'always' | 'normal' | 'bottom') => {
     setLevel(newLevel)
     api.windowSetLevel(newLevel)
-    api.configSet({ lastWindowState: { alwaysOnTop: newLevel } } as any)
+    updateWindowState({ alwaysOnTop: newLevel })
+  }
+
+  const handleThemeToggle = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    document.documentElement.setAttribute('data-theme', next)
+    api.configSet({ theme: next })
   }
 
   return (
     <div
-      className="absolute top-10 left-2 w-52 bg-[#2a2a2c] rounded-lg border border-white/10 shadow-xl z-50 p-3"
+      className="absolute top-10 left-2 w-56 frosted-glass rounded-lg border border-[var(--border-color)] shadow-xl z-50 p-3"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="text-[10px] text-white/40 font-semibold tracking-wider mb-2">OPACITY</div>
-      <div className="flex items-center gap-2 mb-3">
-        <input
-          type="range"
-          min="30"
-          max="100"
-          value={Math.round(opacity * 100)}
-          onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
-          className="flex-1 accent-blue-500"
-        />
-        <span className="text-xs text-white/50 w-8 text-right">{Math.round(opacity * 100)}%</span>
+      {/* Theme toggle */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider">THEME</span>
+        <button
+          onClick={handleThemeToggle}
+          className="text-xs px-2 py-1 rounded bg-[var(--accent)] text-white"
+        >
+          {theme === 'light' ? '☀ Light' : '🌙 Dark'}
+        </button>
       </div>
 
-      <div className="border-t border-white/10 my-2" />
+      <div className="border-t border-[var(--border-color)] my-2" />
 
-      <div className="text-[10px] text-white/40 font-semibold tracking-wider mb-2">WINDOW LEVEL</div>
+      {/* Opacity */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">OPACITY</div>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="range" min="30" max="100"
+          value={Math.round(opacity * 100)}
+          onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
+          className="flex-1 accent-[var(--accent)]"
+        />
+        <span className="text-xs text-[var(--text-secondary)] w-8 text-right">{Math.round(opacity * 100)}%</span>
+      </div>
+
+      {/* Blur */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">BLUR</div>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="range" min="0" max="30"
+          value={blur}
+          onChange={(e) => handleBlurChange(Number(e.target.value))}
+          className="flex-1 accent-[var(--accent)]"
+        />
+        <span className="text-xs text-[var(--text-secondary)] w-8 text-right">{blur}px</span>
+      </div>
+
+      {/* Colors */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex-1">
+          <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-1">PANEL</div>
+          <input
+            type="color" value={panelColor}
+            onChange={(e) => handlePanelColorChange(e.target.value)}
+            className="w-full h-7 rounded cursor-pointer border-0"
+          />
+        </div>
+        <div className="flex-1">
+          <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-1">FONT</div>
+          <input
+            type="color" value={fontColor}
+            onChange={(e) => handleFontColorChange(e.target.value)}
+            className="w-full h-7 rounded cursor-pointer border-0"
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-[var(--border-color)] my-2" />
+
+      {/* Window level */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">WINDOW LEVEL</div>
       {(['always', 'normal', 'bottom'] as const).map((l) => (
         <button
           key={l}
           onClick={() => handleLevelChange(l)}
           className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-            level === l ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/70'
+            level === l ? 'bg-[var(--accent)]/15 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           <span className="mr-2">{level === l ? '●' : '○'}</span>
           {l === 'always' ? 'Always on Top' : l === 'normal' ? 'Normal' : 'Always on Bottom'}
         </button>
       ))}
-
-      <button
-        onClick={onClose}
-        className="mt-2 w-full text-center text-xs text-white/30 hover:text-white/50"
-      >
-        Close
-      </button>
     </div>
   )
 }
@@ -1946,35 +2056,54 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onClose }: MenuPopo
 
   return (
     <div
-      className="absolute top-10 right-8 w-56 bg-[#2a2a2c] rounded-lg border border-white/10 shadow-xl z-50 overflow-hidden"
+      className="absolute top-10 right-8 w-56 frosted-glass rounded-lg border border-[var(--border-color)] shadow-xl z-50 overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="p-2">
-        <div className="text-[10px] text-white/40 font-semibold tracking-wider px-2 py-1">ACTIONS</div>
-        <button onClick={handleNewMemo} className="w-full text-left px-2 py-1.5 rounded text-sm text-white/80 hover:bg-white/10">
-          New Memo
+      {/* Horizontal action buttons */}
+      <div className="flex items-center gap-1 p-2 border-b border-[var(--border-color)]">
+        <button
+          onClick={handleNewMemo}
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)]"
+          title="New Memo"
+        >
+          <span className="text-lg">+</span>
+          <span className="text-[10px]">New</span>
         </button>
-        <button onClick={handlePin} className="w-full text-left px-2 py-1.5 rounded text-sm text-white/80 hover:bg-white/10">
-          {currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin to Top'}
+        <button
+          onClick={handlePin}
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-secondary)]"
+          title={currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin'}
+        >
+          <span className="text-lg">{currentFilename && pinnedSet.has(currentFilename) ? '📌' : '📍'}</span>
+          <span className="text-[10px]">{currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin'}</span>
         </button>
-        <button onClick={handleDelete} className="w-full text-left px-2 py-1.5 rounded text-sm text-red-400/80 hover:bg-white/10">
-          Delete
-        </button>
-        <button onClick={handleSwitchToTodo} className="w-full text-left px-2 py-1.5 rounded text-sm text-blue-400 hover:bg-white/10">
-          Switch to TODO
+        <button
+          onClick={handleDelete}
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-red-500/10 text-red-400/70"
+          title="Delete"
+        >
+          <span className="text-lg">🗑</span>
+          <span className="text-[10px]">Delete</span>
         </button>
       </div>
 
-      <div className="border-t border-white/10" />
+      {/* Switch to TODO */}
+      <button
+        onClick={handleSwitchToTodo}
+        className="w-full text-left px-3 py-2 text-sm text-[var(--accent)] hover:bg-black/5 dark:hover:bg-white/10 border-b border-[var(--border-color)]"
+      >
+        Switch to TODO
+      </button>
 
+      {/* Document list */}
       <div className="p-2 max-h-48 overflow-y-auto">
-        <div className="text-[10px] text-white/40 font-semibold tracking-wider px-2 py-1">DOCUMENTS</div>
+        <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider px-2 py-1">DOCUMENTS</div>
         {memos.map((m) => (
           <button
             key={m.filename}
             onClick={() => { onSwitchMemo(m.filename); onClose() }}
             className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
-              m.filename === currentFilename ? 'bg-white/10 text-blue-400' : 'text-white/70 hover:bg-white/10'
+              m.filename === currentFilename ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:bg-black/5 dark:hover:bg-white/10'
             }`}
           >
             {pinnedSet.has(m.filename) ? '📌 ' : '📄 '}{m.title}

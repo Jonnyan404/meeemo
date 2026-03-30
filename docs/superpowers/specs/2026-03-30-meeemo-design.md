@@ -4,6 +4,8 @@
 
 A Raycast-style desktop app for macOS that provides a global hotkey-activated command palette for quick access to memos and TODO lists. Memos are floating, always-accessible editor windows with window control capabilities (transparency, z-level, drag, resize). TODOs are accessible from both the system tray and the memo editor.
 
+**Visual style**: Frosted glass (vibrancy) material throughout — all panels use background transparency + gaussian blur. Supports light and dark mode (default: light). User can adjust blur intensity, panel background color, and font color in settings.
+
 ## Tech Stack
 
 - **Framework**: Electron
@@ -53,12 +55,16 @@ Task order in the file = display order (drag-to-reorder writes back to file). Co
   "storagePath": "~/meeemo",
   "pinnedMemos": ["ideas.md", "meeting-notes.md"],
   "globalShortcut": "Alt+Space",
+  "theme": "light",
   "lastWindowState": {
     "x": 1200,
     "y": 100,
     "width": 400,
     "height": 450,
     "opacity": 1.0,
+    "blur": 20,
+    "panelColor": "#ffffff",
+    "fontColor": "#1a1a1a",
     "alwaysOnTop": "normal"
   }
 }
@@ -159,15 +165,19 @@ Task order in the file = display order (drag-to-reorder writes back to file). Co
 
 - **⚙ (Settings popover)**:
   - Opacity slider (0.3 ~ 1.0)
+  - Blur intensity slider (0 ~ 30px)
+  - Panel background color picker
+  - Font color picker
   - Window level: Always on top / Always on bottom / Normal
+  - Theme toggle: Light / Dark
   - Storage directory setting
 - **T↕**: Toggle between plain text mode and WYSIWYG mode
 - **[Document Title]**: Centered, click to edit (renames the `.md` file)
 - **≡ (Menu popover)**:
-  - Document list (switch to another memo)
-  - New memo / Delete / Rename
-  - Switch to TODO view
-  - Pin/Unpin current memo
+  - Top row: [New] [Pin/Unpin] [Delete] — horizontal icon buttons
+  - Below: Switch to TODO view
+  - Below: Document list (switch to another memo)
+  - (Rename is done by clicking the title in header, not in this menu)
 - **x**: Close window (always visible, even without hover)
 
 **Plain text mode**: `<textarea>` with monospace font, no formatting, raw Markdown source
