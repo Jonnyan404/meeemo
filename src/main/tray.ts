@@ -4,8 +4,8 @@ import { totalUncompleted } from './todo-service'
 
 let tray: Tray | null = null
 
-// 16x16 PNG checkmark icon embedded as base64 (macOS tray requires PNG)
-const TRAY_ICON_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWElEQVR4nGNgoCJIAeITROIUXJqJBRiGkKIZq56hZcB/SgwAaYYFHk4D/jNgB8ia8RqQgsUQdM14DUA3BJtmggYgG4JNM1EGwAzBBVD0UJyUkQ0hKzORDQCUpjH8gbiXEQAAAABJRU5ErkJggg=='
+// 16x16 PNG cat face icon (macOS tray template image)
+const TRAY_ICON_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARklEQVR4nGNgoCL4T4na/2QY8B+bADGGYFX7H5cEHs14DcBmCF412CSJwcPVAFyG4lNLXQOwaSToBXw2EitP0CWkJHfiAQAFrIh4o6hgmQAAAABJRU5ErkJggg=='
 
 export function createTray(): Tray {
   const icon = nativeImage.createFromDataURL(`data:image/png;base64,${TRAY_ICON_BASE64}`)

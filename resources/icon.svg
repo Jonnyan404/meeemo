@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="#1a1a1a" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Cat head outline -->
+  <ellipse cx="256" cy="300" rx="160" ry="150" />
+  <!-- Left ear -->
+  <path d="M130 195 L100 60 L185 155" />
+  <!-- Right ear -->
+  <path d="M382 195 L412 60 L327 155" />
+  <!-- Left ear inner -->
+  <path d="M125 170 L110 85 L170 150" stroke-width="10" />
+  <!-- Right ear inner -->
+  <path d="M387 170 L402 85 L342 150" stroke-width="10" />
+  <!-- Left eye -->
+  <ellipse cx="200" cy="280" rx="22" ry="26" />
+  <ellipse cx="205" cy="275" rx="8" ry="10" fill="#1a1a1a" stroke="none" />
+  <!-- Right eye -->
+  <ellipse cx="312" cy="280" rx="22" ry="26" />
+  <ellipse cx="317" cy="275" rx="8" ry="10" fill="#1a1a1a" stroke="none" />
+  <!-- Nose -->
+  <path d="M250 330 L256 340 L262 330 Z" fill="#1a1a1a" stroke="none" />
+  <!-- Mouth -->
+  <path d="M256 340 L256 355" stroke-width="10" />
+  <path d="M235 360 Q256 378 277 360" stroke-width="10" fill="none" />
+  <!-- Whiskers left -->
+  <line x1="110" y1="310" x2="180" y2="320" stroke-width="8" />
+  <line x1="115" y1="340" x2="180" y2="340" stroke-width="8" />
+  <line x1="120" y1="370" x2="182" y2="358" stroke-width="8" />
+  <!-- Whiskers right -->
+  <line x1="402" y1="310" x2="332" y2="320" stroke-width="8" />
+  <line x1="397" y1="340" x2="332" y2="340" stroke-width="8" />
+  <line x1="392" y1="370" x2="330" y2="358" stroke-width="8" />
+  <!-- Small memo/note in front of cat -->
+  <rect x="210" y="395" width="92" height="65" rx="6" fill="white" stroke-width="12" />
+  <line x1="228" y1="418" x2="284" y2="418" stroke-width="8" />
+  <line x1="228" y1="435" x2="272" y2="435" stroke-width="8" />
+</svg>

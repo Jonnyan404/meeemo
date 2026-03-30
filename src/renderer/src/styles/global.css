@@ -33,10 +33,10 @@ html, body, #root {
 }
 
 .frosted-fixed {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 [data-theme="dark"] .frosted-fixed {
-  background: rgba(28, 28, 30, 0.5);
+  background: rgba(28, 28, 30, 0.85);
 }
