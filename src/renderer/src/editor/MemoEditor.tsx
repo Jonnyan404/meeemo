@@ -8,135 +8,144 @@ type FileType = 'memo' | 'todo'
 
 export function MemoEditor() {
   const api = useApi()
+
+  // Core state — monotonic sessionId ensures every file switch is unique
+  const [sessionId, setSessionId] = useState(0)
   const [filename, setFilename] = useState<string | null>(null)
   const [fileType, setFileType] = useState<FileType>('memo')
   const [content, setContent] = useState('')
   const [mode, setMode] = useState<'plain' | 'wysiwyg'>('wysiwyg')
+
+  // UI state
   const [headerVisible, setHeaderVisible] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const contentRef = useRef(content)
-  const [editorKey, setEditorKey] = useState(0)
-  const filenameRef = useRef(filename)
+
+  // Refs for async access (closures always get latest value)
+  const filenameRef = useRef<string | null>(null)
+  const fileTypeRef = useRef<FileType>('memo')
+  const contentRef = useRef('')
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync refs
   filenameRef.current = filename
+  fileTypeRef.current = fileType
 
-  useEffect(() => {
-    api.onOpenMemo((fname) => {
-      cancelPendingSave()
-      setFilename(fname)
-      setFileType('memo')
-      setEditorKey((k) => k + 1)
-    })
-  }, [api])
+  // ---- Helpers ----
 
-  // Cross-window sync: re-read file when other windows change data
-  useEffect(() => {
-    api.onDataChanged(() => {
-      if (!filenameRef.current) return
-      const fn = filenameRef.current
-      const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
-      readFn(fn).then((c) => {
-        if (c !== contentRef.current) {
-          setContent(c)
-          contentRef.current = c
-          // Force Tiptap remount to pick up new content
-          if (mode === 'wysiwyg') setEditorKey((k) => k + 1)
-        }
-      }).catch(() => {
-        // File might have been deleted
-      })
-    })
-  }, [api, fileType, mode])
-
-  // Load content when filename changes
-  useEffect(() => {
-    if (!filename) return
-    const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
-    readFn(filename).then((c) => {
-      setContent(c)
-      contentRef.current = c
-    }).catch(() => {})
-  }, [filename, fileType, api])
-
-  function cancelPendingSave() {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-      saveTimeoutRef.current = null
+  function cancelSave() {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
     }
   }
 
-  const writeFn = useCallback(
-    (fname: string, c: string) => {
-      return fileType === 'memo' ? api.memoWrite(fname, c) : api.todoWriteRaw(fname, c)
-    },
-    [fileType, api]
-  )
+  function readFile(fname: string, ftype: FileType) {
+    return ftype === 'memo' ? api.memoRead(fname) : api.todoReadRaw(fname)
+  }
 
-  const handleChange = useCallback(
-    (newContent: string) => {
-      setContent(newContent)
-      contentRef.current = newContent
-      if (!filenameRef.current) return
-      cancelPendingSave()
+  function writeFile(fname: string, c: string, ftype: FileType) {
+    return ftype === 'memo' ? api.memoWrite(fname, c) : api.todoWriteRaw(fname, c)
+  }
+
+  // Open a file: cancel any pending save, bump session, load from disk
+  const openFile = useCallback((fname: string, ftype: FileType) => {
+    cancelSave()
+    setFilename(fname)
+    setFileType(ftype)
+    setSessionId((s) => s + 1)
+    // Content will be loaded by the effect below
+  }, [])
+
+  // ---- Effects ----
+
+  // Listen for IPC: main process tells us to open a memo
+  useEffect(() => {
+    api.onOpenMemo((fname) => openFile(fname, 'memo'))
+  }, [api, openFile])
+
+  // Load content whenever session changes (new file opened or mode toggled)
+  useEffect(() => {
+    if (!filename) return
+    readFile(filename, fileType).then((c) => {
+      setContent(c)
+      contentRef.current = c
+    }).catch(() => {})
+  }, [sessionId]) // eslint-disable-line -- sessionId encapsulates all file identity changes
+
+  // Cross-window sync
+  useEffect(() => {
+    api.onDataChanged(() => {
       const fn = filenameRef.current
-      saveTimeoutRef.current = setTimeout(() => {
-        writeFn(fn, newContent)
-        // Also update tray badge if editing a todo file
-        ;(window as any).__electron_ipc_send?.('update-tray-badge')
-      }, 500)
-    },
-    [writeFn]
-  )
+      const ft = fileTypeRef.current
+      if (!fn) return
+      readFile(fn, ft).then((c) => {
+        if (c !== contentRef.current) {
+          setContent(c)
+          contentRef.current = c
+          // Bump session to remount Tiptap with fresh content
+          setSessionId((s) => s + 1)
+        }
+      }).catch(() => {})
+    })
+  }, [api])
 
-  const handleRename = useCallback(
-    async (newTitle: string) => {
-      if (!filename || fileType !== 'memo') return
-      const newFilename = await api.memoRename(filename, newTitle)
-      setFilename(newFilename)
-    },
-    [filename, fileType, api]
-  )
+  // ---- Handlers ----
 
-  // Switch memo: flush current content first, then switch
-  const handleSwitchMemo = useCallback(
-    async (newFilename: string) => {
-      // Flush pending save for current file
-      cancelPendingSave()
-      if (filename && contentRef.current) {
-        await writeFn(filename, contentRef.current).catch(() => {})
-      }
-      setFileType('memo')
-      setFilename(newFilename)
-      setEditorKey((k) => k + 1)
-    },
-    [filename, writeFn]
-  )
+  const handleChange = useCallback((newContent: string) => {
+    setContent(newContent)
+    contentRef.current = newContent
 
-  const handleSwitchTodo = useCallback(
-    async (newFilename: string) => {
-      cancelPendingSave()
-      if (filename && contentRef.current) {
-        await writeFn(filename, contentRef.current).catch(() => {})
-      }
-      setFileType('todo')
-      setFilename(newFilename)
-      setEditorKey((k) => k + 1)
-    },
-    [filename, writeFn]
-  )
+    cancelSave()
+    const fn = filenameRef.current
+    const ft = fileTypeRef.current
+    if (!fn) return
+
+    saveTimerRef.current = setTimeout(() => {
+      writeFile(fn, newContent, ft)
+      ;(window as any).__electron_ipc_send?.('update-tray-badge')
+    }, 500)
+  }, [api])
+
+  const handleRename = useCallback(async (newTitle: string) => {
+    const fn = filenameRef.current
+    if (!fn || fileTypeRef.current !== 'memo') return
+    cancelSave()
+    const newFilename = await api.memoRename(fn, newTitle)
+    openFile(newFilename, 'memo')
+  }, [api, openFile])
+
+  const handleSwitchMemo = useCallback((newFilename: string) => {
+    // Flush current content synchronously before switching
+    const fn = filenameRef.current
+    const ft = fileTypeRef.current
+    cancelSave()
+    if (fn && contentRef.current) {
+      writeFile(fn, contentRef.current, ft)
+    }
+    openFile(newFilename, 'memo')
+  }, [api, openFile])
+
+  const handleSwitchTodo = useCallback((newFilename: string) => {
+    const fn = filenameRef.current
+    const ft = fileTypeRef.current
+    cancelSave()
+    if (fn && contentRef.current) {
+      writeFile(fn, contentRef.current, ft)
+    }
+    openFile(newFilename, 'todo')
+  }, [api, openFile])
 
   const handleToggleMode = useCallback(async () => {
-    if (filename && contentRef.current) {
-      cancelPendingSave()
-      await writeFn(filename, contentRef.current)
-      const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
-      const freshContent = await readFn(filename)
-      setContent(freshContent)
-      contentRef.current = freshContent
+    // Save current content, re-read for clean round-trip, then switch mode
+    const fn = filenameRef.current
+    const ft = fileTypeRef.current
+    cancelSave()
+    if (fn && contentRef.current) {
+      await writeFile(fn, contentRef.current, ft)
     }
     setMode((m) => (m === 'plain' ? 'wysiwyg' : 'plain'))
-    setEditorKey((k) => k + 1)
-  }, [filename, fileType, api, writeFn])
+    setSessionId((s) => s + 1) // forces re-read and remount
+  }, [api])
 
   const showHeader = headerVisible || popoverOpen
 
@@ -168,9 +177,9 @@ export function MemoEditor() {
       <div className="flex-1 overflow-y-auto">
         {filename ? (
           mode === 'plain' ? (
-            <PlainTextEditor key={`plain-${editorKey}`} content={content} onChange={handleChange} />
+            <PlainTextEditor key={`p-${sessionId}`} content={content} onChange={handleChange} />
           ) : (
-            <TiptapEditor key={`wysiwyg-${editorKey}`} content={content} onChange={handleChange} />
+            <TiptapEditor key={`w-${sessionId}`} content={content} onChange={handleChange} />
           )
         ) : (
           <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">

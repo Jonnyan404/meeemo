@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApi } from '../hooks/use-ipc'
 
 interface MenuPopoverProps {
@@ -15,7 +15,7 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [listMode, setListMode] = useState<'memo' | 'todo'>('memo')
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     Promise.all([api.memoList(), api.configGet(), api.todoList()]).then(([m, c, t]) => {
       setMemos(m)
       setConfig(c)
@@ -23,43 +23,46 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
     })
   }, [api])
 
+  useEffect(() => { refresh() }, [refresh])
+
   const pinnedSet = new Set(config?.pinnedMemos || [])
+  // Sort: pinned first, then by modified time (memos already sorted by time from service)
+  const pinnedMemos = memos.filter((m) => pinnedSet.has(m.filename))
+  const unpinnedMemos = memos.filter((m) => !pinnedSet.has(m.filename))
+  const sortedMemos = [...pinnedMemos, ...unpinnedMemos]
 
   const handleNewMemo = async () => {
     try {
       const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
       const filename = await api.memoCreate(title)
-      console.log('[MenuPopover] Created memo:', filename)
       onSwitchMemo(filename)
       onClose()
     } catch (err) {
-      console.error('[MenuPopover] Failed to create memo:', err)
+      console.error('[Menu] Create failed:', err)
     }
   }
 
   const handleDelete = async () => {
     if (!currentFilename) return
     const title = currentFilename.replace('.md', '')
-    // Use confirm - if it doesn't show in frameless window, the IPC delete still runs
     if (!window.confirm(`Delete "${title}"?\n\nThis cannot be undone.`)) return
     try {
       await api.memoDelete(currentFilename)
-      console.log('[MenuPopover] Deleted:', currentFilename)
+      // Switch to next available memo
       const remaining = memos.filter((m) => m.filename !== currentFilename)
       if (remaining.length > 0) {
         onSwitchMemo(remaining[0].filename)
       }
       onClose()
     } catch (err) {
-      console.error('[MenuPopover] Failed to delete:', err)
+      console.error('[Menu] Delete failed:', err)
     }
   }
 
   const handlePin = async () => {
     if (!currentFilename) return
     await api.memoPin(currentFilename)
-    const c = await api.configGet()
-    setConfig(c)
+    refresh() // Refresh to update pin state
   }
 
   return (
@@ -68,12 +71,11 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Horizontal action buttons */}
+      {/* Action buttons */}
       <div className="flex items-center gap-1 p-2 border-b border-[var(--border-color)]">
         <button
           onClick={handleNewMemo}
           className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          title="New Memo"
         >
           <span className="text-lg">+</span>
           <span className="text-[10px]">New</span>
@@ -81,7 +83,6 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
         <button
           onClick={handlePin}
           className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          title={currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin'}
         >
           <span className="text-lg">{currentFilename && pinnedSet.has(currentFilename) ? '📌' : '📍'}</span>
           <span className="text-[10px]">{currentFilename && pinnedSet.has(currentFilename) ? 'Unpin' : 'Pin'}</span>
@@ -89,7 +90,6 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
         <button
           onClick={handleDelete}
           className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-red-500/10"
-          title="Delete"
           style={{ color: 'rgba(248,113,113,0.8)' }}
         >
           <span className="text-lg">🗑</span>
@@ -97,7 +97,7 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
         </button>
       </div>
 
-      {/* Memo / TODO toggle tabs */}
+      {/* Memo / TODO tabs */}
       <div className="flex border-b border-[var(--border-color)]">
         <button
           onClick={() => setListMode('memo')}
@@ -121,45 +121,39 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
         </button>
       </div>
 
-      {/* Document / TODO list */}
+      {/* List */}
       <div className="p-2 max-h-48 overflow-y-auto">
         {listMode === 'memo' ? (
-          <>
-            {memos.map((m) => (
-              <button
-                key={m.filename}
-                onClick={() => { onSwitchMemo(m.filename); onClose() }}
-                className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
-                  m.filename === currentFilename
-                    ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {pinnedSet.has(m.filename) ? '📌 ' : '📄 '}{m.title}
-              </button>
-            ))}
-            {memos.length === 0 && (
-              <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No memos yet</div>
-            )}
-          </>
+          sortedMemos.length > 0 ? sortedMemos.map((m) => (
+            <button
+              key={m.filename}
+              onClick={() => { onSwitchMemo(m.filename); onClose() }}
+              className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
+                m.filename === currentFilename
+                  ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+                  : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {pinnedSet.has(m.filename) ? '📌 ' : '📄 '}{m.title}
+            </button>
+          )) : (
+            <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No memos yet</div>
+          )
         ) : (
-          <>
-            {todoLists.map((t) => (
-              <button
-                key={t.filename}
-                onClick={() => { onSwitchTodo(t.filename); onClose() }}
-                className="w-full text-left px-2 py-1.5 rounded text-sm truncate text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]"
-              >
-                ☑ {t.name}
-                <span className="ml-2 text-xs opacity-60">
-                  {t.tasks.filter(task => !task.done).length} tasks
-                </span>
-              </button>
-            ))}
-            {todoLists.length === 0 && (
-              <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No TODO lists yet</div>
-            )}
-          </>
+          todoLists.length > 0 ? todoLists.map((t) => (
+            <button
+              key={t.filename}
+              onClick={() => { onSwitchTodo(t.filename); onClose() }}
+              className="w-full text-left px-2 py-1.5 rounded text-sm truncate text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]"
+            >
+              ☑ {t.name}
+              <span className="ml-2 text-xs opacity-60">
+                {t.tasks.filter(task => !task.done).length} tasks
+              </span>
+            </button>
+          )) : (
+            <div className="px-2 py-2 text-xs text-[var(--text-secondary)] italic">No TODO lists yet</div>
+          )
         )}
       </div>
     </div>

@@ -35,7 +35,7 @@ export function CommandPalette() {
         icon: '+',
         label: 'Create New Memo',
         action: () => {
-          const title = `Untitled ${new Date().toLocaleDateString()}`
+          const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
           ;(window as any).__electron_ipc_send?.('create-and-open-memo', title)
         }
       },
@@ -103,9 +103,17 @@ export function CommandPalette() {
     }
   }, [query, loadDefaultItems, loadSearchResults])
 
+  // Refresh data when palette becomes visible (window show/hide)
   useEffect(() => {
+    const onFocus = () => {
+      setQuery('')
+      loadDefaultItems()
+      inputRef.current?.focus()
+    }
+    window.addEventListener('focus', onFocus)
     inputRef.current?.focus()
-  }, [])
+    return () => window.removeEventListener('focus', onFocus)
+  }, [loadDefaultItems])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
