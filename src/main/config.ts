@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 
@@ -47,6 +47,22 @@ function configPath(storagePath: string): string {
 export function ensureStorageDirs(storagePath: string): void {
   mkdirSync(join(storagePath, 'memo'), { recursive: true })
   mkdirSync(join(storagePath, 'todo'), { recursive: true })
+
+  const memoDir = join(storagePath, 'memo')
+  if (readdirSync(memoDir).filter((f) => f.endsWith('.md')).length === 0) {
+    writeFileSync(
+      join(memoDir, 'Welcome.md'),
+      '# Welcome to Meeemo!\n\nThis is your first memo. Press **⌥ Space** to open the command palette.\n\n- Create new memos\n- Search across all your notes\n- Pin your favorites\n\nHappy writing!'
+    )
+  }
+
+  const todoDir = join(storagePath, 'todo')
+  if (readdirSync(todoDir).filter((f) => f.endsWith('.md')).length === 0) {
+    writeFileSync(
+      join(todoDir, 'Inbox.md'),
+      '- [ ] Try creating a new task\n- [ ] Explore the command palette (⌥ Space)\n'
+    )
+  }
 }
 
 export function loadConfig(): AppConfig {
