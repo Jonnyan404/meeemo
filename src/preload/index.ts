@@ -28,6 +28,9 @@ const api = {
   },
   onShowTodo: (callback: () => void) => {
     ipcRenderer.on('show-todo', () => callback())
+  },
+  onDataChanged: (callback: () => void) => {
+    ipcRenderer.on('data-changed', () => callback())
   }
 }
 

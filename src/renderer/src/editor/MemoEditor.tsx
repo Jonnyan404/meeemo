@@ -24,6 +24,21 @@ export function MemoEditor() {
     })
   }, [api])
 
+  useEffect(() => {
+    api.onDataChanged(() => {
+      if (filename) {
+        const readFn = fileType === 'memo' ? api.memoRead : api.todoReadRaw
+        readFn(filename).then((c) => {
+          // Only update if content actually changed (avoid cursor jump)
+          if (c !== contentRef.current) {
+            setContent(c)
+            contentRef.current = c
+          }
+        })
+      }
+    })
+  }, [api, filename, fileType])
+
   // Load content when filename changes
   useEffect(() => {
     if (!filename) return

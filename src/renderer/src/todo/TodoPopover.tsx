@@ -71,6 +71,10 @@ export function TodoPopover() {
     loadLists()
   }, [loadLists])
 
+  useEffect(() => {
+    api.onDataChanged(() => loadLists())
+  }, [api, loadLists])
+
   const activeList = lists.find((l) => l.filename === activeFilename)
   const tasks = activeList?.tasks || []
   const uncompleted = tasks.filter((t) => !t.done)

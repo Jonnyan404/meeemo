@@ -3,7 +3,7 @@ import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { Markdown } from '@tiptap/markdown'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 
 interface TiptapEditorProps {
   content: string
@@ -12,6 +12,7 @@ interface TiptapEditorProps {
 
 export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
   const isUpdatingRef = useRef(false)
+  const initialContentRef = useRef(content)
 
   const editor = useEditor({
     extensions: [
@@ -20,15 +21,25 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       TaskItem.configure({ nested: true }),
       Markdown.configure({ html: false })
     ],
-    content: content,
+    content: '', // start empty, set markdown content in onCreate
     immediatelyRender: false,
+    onCreate: ({ editor }) => {
+      // Set initial content as markdown
+      isUpdatingRef.current = true
+      try {
+        const doc = (editor as any).storage.markdown.parser.parse(initialContentRef.current || '')
+        if (doc) editor.commands.setContent(doc)
+      } catch {
+        editor.commands.setContent(initialContentRef.current || '')
+      }
+      isUpdatingRef.current = false
+    },
     onUpdate: ({ editor }) => {
       if (isUpdatingRef.current) return
       try {
         const md = (editor as any).storage.markdown.getMarkdown()
         onChange(md)
       } catch {
-        // fallback: get text content
         onChange(editor.getText())
       }
     }

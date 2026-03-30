@@ -31,4 +31,6 @@ html, body, #root {
 
 .frosted-glass {
   background: var(--panel-bg);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
 }

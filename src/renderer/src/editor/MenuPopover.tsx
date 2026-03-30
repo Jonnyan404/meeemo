@@ -14,7 +14,6 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
   const [todoLists, setTodoLists] = useState<TodoList[]>([])
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [listMode, setListMode] = useState<'memo' | 'todo'>('memo')
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     Promise.all([api.memoList(), api.configGet(), api.todoList()]).then(([m, c, t]) => {
@@ -35,16 +34,14 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
 
   const handleDelete = async () => {
     if (!currentFilename) return
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true)
-      return
-    }
+    const title = currentFilename.replace('.md', '')
+    const confirmed = window.confirm(`Delete "${title}"? This cannot be undone.`)
+    if (!confirmed) return
     await api.memoDelete(currentFilename)
     const remaining = memos.filter((m) => m.filename !== currentFilename)
     if (remaining.length > 0) {
       onSwitchMemo(remaining[0].filename)
     }
-    setShowDeleteConfirm(false)
     onClose()
   }
 
@@ -80,14 +77,12 @@ export function MenuPopover({ currentFilename, onSwitchMemo, onSwitchTodo, onClo
         </button>
         <button
           onClick={handleDelete}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg ${
-            showDeleteConfirm ? 'bg-red-500 text-white' : 'hover:bg-red-500/10'
-          }`}
-          title={showDeleteConfirm ? 'Click again to confirm' : 'Delete'}
-          style={showDeleteConfirm ? {} : { color: 'rgba(248,113,113,0.7)' }}
+          className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-red-500/10"
+          title="Delete"
+          style={{ color: 'rgba(248,113,113,0.8)' }}
         >
-          <span className="text-lg">{showDeleteConfirm ? '⚠' : '🗑'}</span>
-          <span className="text-[10px]">{showDeleteConfirm ? 'Confirm?' : 'Delete'}</span>
+          <span className="text-lg">🗑</span>
+          <span className="text-[10px]">Delete</span>
         </button>
       </div>
 
