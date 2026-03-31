@@ -26,7 +26,9 @@ function loadPage(win: BrowserWindow, page: string): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/${page}.html`)
   } else {
-    win.loadFile(join(__dirname, `../renderer/${page}/index.html`))
+    // palette page is index.html, others are {page}.html
+    const file = page === 'palette' ? 'index.html' : `${page}.html`
+    win.loadFile(join(__dirname, `../renderer/${file}`))
   }
 }
 
