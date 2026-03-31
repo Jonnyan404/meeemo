@@ -23,11 +23,8 @@
       "native/**/index.js",
       "native/**/package.json"
     ],
-    "extraResources": [
-      {
-        "from": "native/macos-vibrancy/build/Release/macos_vibrancy.node",
-        "to": "native/macos-vibrancy/build/Release/macos_vibrancy.node"
-      }
+    "asarUnpack": [
+      "native/**/*.node"
     ]
   },
   "keywords": [],

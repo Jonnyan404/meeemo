@@ -2,15 +2,21 @@ const path = require('path');
 
 let binding;
 if (process.platform === 'darwin') {
-  try {
-    binding = require('./build/Release/macos_vibrancy.node');
-  } catch {
+  // In packaged app, asar-unpacked .node files are at app.asar.unpacked/
+  const tryPaths = [
+    path.join(__dirname, 'build/Release/macos_vibrancy.node'),
+    path.join(__dirname.replace('app.asar', 'app.asar.unpacked'), 'build/Release/macos_vibrancy.node'),
+    path.join(__dirname, 'build/Debug/macos_vibrancy.node'),
+  ];
+  for (const p of tryPaths) {
     try {
-      binding = require('./build/Debug/macos_vibrancy.node');
-    } catch {
-      console.warn('[macos-vibrancy] Native addon not found, vibrancy disabled');
-      binding = { setVibrancy() {}, removeVibrancy() {} };
-    }
+      binding = require(p);
+      break;
+    } catch {}
+  }
+  if (!binding) {
+    console.warn('[macos-vibrancy] Native addon not found, vibrancy disabled');
+    binding = { setVibrancy() {}, removeVibrancy() {} };
   }
 } else {
   binding = { setVibrancy() {}, removeVibrancy() {} };
