@@ -24,6 +24,8 @@ const api = {
   windowSetLevel: (level: 'always' | 'normal' | 'bottom') => ipcRenderer.invoke('window:set-level', level),
   windowSetVibrancy: (vibrancy: string | null) => ipcRenderer.invoke('window:set-vibrancy', vibrancy),
   windowSetShortcut: (shortcut: string) => ipcRenderer.invoke('window:set-shortcut', shortcut),
+  appVersion: () => ipcRenderer.invoke('app:version'),
+  openUrl: (url: string) => ipcRenderer.invoke('app:open-url', url),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
     ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))

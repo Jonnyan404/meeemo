@@ -15,6 +15,9 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [shortcut, setShortcut] = useState('Alt+Space')
   const [isRecording, setIsRecording] = useState(false)
   const [shortcutError, setShortcutError] = useState('')
+  const [version, setVersion] = useState('')
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle')
+  const [latestVersion, setLatestVersion] = useState('')
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -25,6 +28,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
       setShortcut(config.globalShortcut || 'Alt+Space')
+      api.appVersion().then(setVersion)
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
@@ -93,6 +97,24 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
           setShortcut(combo)
         }
       })
+    }
+  }
+
+  const checkForUpdates = async () => {
+    setUpdateStatus('checking')
+    try {
+      const res = await fetch('https://api.github.com/repos/KasparChen/meeemo/releases/latest')
+      if (!res.ok) { setUpdateStatus('latest'); return }
+      const data = await res.json()
+      const remote = (data.tag_name || '').replace(/^v/, '')
+      if (remote && remote !== version) {
+        setLatestVersion(remote)
+        setUpdateStatus('available')
+      } else {
+        setUpdateStatus('latest')
+      }
+    } catch {
+      setUpdateStatus('latest')
     }
   }
 
@@ -204,6 +226,37 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       {shortcutError && (
         <div className="text-[10px] text-red-500 mt-1">{shortcutError}</div>
       )}
+
+      {/* Version & Update */}
+      <div className="border-t border-[var(--border-color)] mt-3 pt-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-[var(--text-secondary)]">v{version}</span>
+          {updateStatus === 'idle' && (
+            <button
+              onClick={checkForUpdates}
+              className="text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+              style={{ border: 'none', background: 'none' }}
+            >
+              Check for updates
+            </button>
+          )}
+          {updateStatus === 'checking' && (
+            <span className="text-[10px] text-[var(--text-secondary)]">Checking...</span>
+          )}
+          {updateStatus === 'latest' && (
+            <span className="text-[10px] text-green-600">Up to date</span>
+          )}
+          {updateStatus === 'available' && (
+            <button
+              onClick={() => api.openUrl('https://github.com/KasparChen/meeemo/releases/latest')}
+              className="text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+              style={{ border: 'none', background: 'none' }}
+            >
+              v{latestVersion} available →
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

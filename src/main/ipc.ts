@@ -1,4 +1,4 @@
-import { app, globalShortcut, ipcMain, BrowserWindow } from 'electron'
+import { app, globalShortcut, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
@@ -108,5 +108,7 @@ export function registerIpcHandlers(): void {
     updateConfig({ globalShortcut: shortcut })
     return { ok: true }
   })
+  ipcMain.handle('app:version', () => app.getVersion())
+  ipcMain.handle('app:open-url', (_e, url: string) => shell.openExternal(url))
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }

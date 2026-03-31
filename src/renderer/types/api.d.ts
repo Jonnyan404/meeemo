@@ -36,6 +36,8 @@ interface MeeemoAPI {
   windowSetLevel(level: 'always' | 'normal' | 'bottom'): Promise<void>
   windowSetVibrancy(vibrancy: string | null): Promise<void>
   windowSetShortcut(shortcut: string): Promise<{ ok?: boolean; error?: string }>
+  appVersion(): Promise<string>
+  openUrl(url: string): Promise<void>
   windowClose(): Promise<void>
   onOpenMemo(callback: (filename: string) => void): void
   onShowTodo(callback: () => void): void
