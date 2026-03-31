@@ -163,11 +163,13 @@ export function MemoEditor() {
 
   return (
     <div className="flex flex-col h-screen frosted-glass rounded-xl overflow-hidden">
-      {/* Invisible hover trigger — always active across full width at top */}
-      <div
-        className="absolute top-0 left-0 right-0 h-12 z-30"
-        onMouseEnter={() => setHeaderVisible(true)}
-      />
+      {/* Invisible hover trigger — only active when header is hidden */}
+      {!showHeader && (
+        <div
+          className="absolute top-0 left-0 right-0 h-12 z-30"
+          onMouseEnter={() => setHeaderVisible(true)}
+        />
+      )}
 
       {!showHeader && (
         <button
