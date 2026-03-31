@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApi } from '../hooks/use-ipc'
 
 interface SettingsPopoverProps {
@@ -211,7 +211,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         <div
           className="w-full px-2 py-1.5 rounded text-sm text-center border-2 border-[var(--accent)] text-[var(--accent)] outline-none animate-pulse"
           tabIndex={0}
-          autoFocus
+          ref={(el) => el?.focus()}
           onKeyDown={handleShortcutRecord}
           onBlur={() => setIsRecording(false)}
         >
