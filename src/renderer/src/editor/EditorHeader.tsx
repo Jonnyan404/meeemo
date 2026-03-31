@@ -47,13 +47,19 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
       }`}
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      {/* Left: close button */}
-      <div className="flex items-center px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      {/* Left: close button + mode toggle */}
+      <div className="flex items-center gap-2 px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
           onClick={onClose}
           className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors"
           title="Close"
         />
+        <button
+          onClick={onToggleMode}
+          className="text-xs bg-black/5 px-2 py-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          {mode === 'plain' ? 'TXT' : 'MD'}
+        </button>
       </div>
 
       {/* Center title */}
@@ -79,15 +85,9 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
         </div>
       </div>
 
-      {/* Right: TXT/MD, settings, menu */}
+      {/* Right: settings, menu */}
       <div className="flex-1" />
       <div className="flex items-center gap-1 px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <button
-          onClick={onToggleMode}
-          className="text-xs bg-black/5 px-2 py-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          {mode === 'plain' ? 'TXT' : 'MD'}
-        </button>
         <button
           onClick={() => { setShowSettings(!showSettings); setShowMenu(false) }}
           className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 transition-colors"
