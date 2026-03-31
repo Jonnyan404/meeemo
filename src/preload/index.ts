@@ -26,6 +26,8 @@ const api = {
   windowSetShortcut: (shortcut: string) => ipcRenderer.invoke('window:set-shortcut', shortcut),
   appVersion: () => ipcRenderer.invoke('app:version'),
   openUrl: (url: string) => ipcRenderer.invoke('app:open-url', url),
+  openStorage: () => ipcRenderer.invoke('app:open-storage'),
+  changeStorage: () => ipcRenderer.invoke('app:change-storage'),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
     ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))

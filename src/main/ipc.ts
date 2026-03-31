@@ -110,5 +110,21 @@ export function registerIpcHandlers(): void {
   })
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:open-url', (_e, url: string) => shell.openExternal(url))
+  ipcMain.handle('app:open-storage', () => {
+    const config = loadConfig()
+    shell.openPath(config.storagePath)
+  })
+  ipcMain.handle('app:change-storage', async () => {
+    const { dialog } = require('electron')
+    const win = BrowserWindow.getAllWindows()[0]
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Choose storage folder'
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const newPath = result.filePaths[0]
+    const updated = updateConfig({ storagePath: newPath })
+    return updated.storagePath
+  })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }

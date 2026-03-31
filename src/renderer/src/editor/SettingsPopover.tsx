@@ -18,6 +18,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [version, setVersion] = useState('')
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle')
   const [latestVersion, setLatestVersion] = useState('')
+  const [storagePath, setStoragePath] = useState('')
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -28,6 +29,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
       setShortcut(config.globalShortcut || 'Alt+Space')
+      setStoragePath(config.storagePath || '')
       api.appVersion().then(setVersion)
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
@@ -226,6 +228,31 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       {shortcutError && (
         <div className="text-[10px] text-red-500 mt-1">{shortcutError}</div>
       )}
+
+      {/* Storage path */}
+      <div className="border-t border-[var(--border-color)] mt-3 pt-2">
+        <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-2">STORAGE</div>
+        <div className="text-[10px] text-[var(--text-secondary)] truncate mb-1" title={storagePath}>
+          {storagePath}
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => api.openStorage()}
+            className="flex-1 text-[10px] px-2 py-1 rounded bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-black/8 cursor-pointer"
+          >
+            Open Folder
+          </button>
+          <button
+            onClick={async () => {
+              const newPath = await api.changeStorage()
+              if (newPath) setStoragePath(newPath)
+            }}
+            className="flex-1 text-[10px] px-2 py-1 rounded bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-black/8 cursor-pointer"
+          >
+            Change...
+          </button>
+        </div>
+      </div>
 
       {/* Version & Update */}
       <div className="border-t border-[var(--border-color)] mt-3 pt-2">

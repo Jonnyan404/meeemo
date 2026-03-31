@@ -38,6 +38,8 @@ interface MeeemoAPI {
   windowSetShortcut(shortcut: string): Promise<{ ok?: boolean; error?: string }>
   appVersion(): Promise<string>
   openUrl(url: string): Promise<void>
+  openStorage(): Promise<void>
+  changeStorage(): Promise<string | null>
   windowClose(): Promise<void>
   onOpenMemo(callback: (filename: string) => void): void
   onShowTodo(callback: () => void): void
