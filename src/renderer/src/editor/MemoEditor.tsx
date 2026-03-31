@@ -162,11 +162,13 @@ export function MemoEditor() {
   const showHeader = headerVisible || popoverOpen
 
   return (
-    <div
-      className="flex flex-col h-screen frosted-glass rounded-xl overflow-hidden"
-      onMouseMove={(e) => setHeaderVisible(e.clientY < 48)}
-      onMouseLeave={() => setHeaderVisible(false)}
-    >
+    <div className="flex flex-col h-screen frosted-glass rounded-xl overflow-hidden">
+      {/* Invisible hover trigger — always active across full width at top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-12 z-30"
+        onMouseEnter={() => setHeaderVisible(true)}
+      />
+
       {!showHeader && (
         <button
           onClick={() => api.windowClose()}
@@ -184,6 +186,7 @@ export function MemoEditor() {
         onRename={handleRename}
         onClose={() => api.windowClose()}
         onPopoverChange={setPopoverOpen}
+        onMouseLeave={() => { if (!popoverOpen) setHeaderVisible(false) }}
       />
 
       <div className="flex-1 overflow-y-auto">

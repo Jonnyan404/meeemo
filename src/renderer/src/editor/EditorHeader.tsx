@@ -12,9 +12,10 @@ interface EditorHeaderProps {
   onRename: (newTitle: string) => void
   onClose: () => void
   onPopoverChange?: (open: boolean) => void
+  onMouseLeave?: () => void
 }
 
-export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMemo, onSwitchTodo, onRename, onClose, onPopoverChange }: EditorHeaderProps) {
+export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMemo, onSwitchTodo, onRename, onClose, onPopoverChange, onMouseLeave }: EditorHeaderProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -46,6 +47,7 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      onMouseLeave={onMouseLeave}
     >
       {/* Left: close button + mode toggle */}
       <div className="flex items-center gap-2 px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
