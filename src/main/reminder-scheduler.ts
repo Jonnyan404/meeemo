@@ -80,10 +80,12 @@ function checkReminders(): void {
     }
   }
 
-  // Update tray badge and notify renderer of overdue tasks
+  // Always update tray badge (overdue count may change as time passes)
+  const { updateTrayBadge } = require('./tray')
+  updateTrayBadge()
+
+  // Notify renderer when new alerts fire
   if (newAlerts) {
-    const { updateTrayBadge } = require('./tray')
-    updateTrayBadge()
     broadcastToAll('reminder-alert')
   }
 }

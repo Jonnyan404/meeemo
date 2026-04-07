@@ -93,7 +93,9 @@ export function TodoPopover() {
   }, [api, loadLists])
 
   useEffect(() => {
-    api.onReminderAlert(() => loadLists())
+    if (typeof api.onReminderAlert === 'function') {
+      api.onReminderAlert(() => loadLists())
+    }
   }, [api, loadLists])
 
   const activeList = lists.find((l) => l.filename === activeFilename)
@@ -105,15 +107,17 @@ export function TodoPopover() {
   const now = Date.now()
   const overdueTasks = tasks.filter((t) => {
     if (t.done || !t.reminder) return false
-    const match = t.reminder.match(/^(\d{4})-(\d{1,2})-(\d{1,2})-(\d{2})(\d{2})([+-]\d{1,2})$/)
-    if (!match) return false
-    const [, year, month, day, hour, min, offsetStr] = match
-    const offset = parseInt(offsetStr, 10)
-    const sign = offset >= 0 ? '+' : '-'
-    const absOffset = Math.abs(offset)
-    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
-    const d = new Date(iso)
-    return !isNaN(d.getTime()) && d.getTime() < now
+    try {
+      const match = t.reminder.match(/^(\d{4})-(\d{1,2})-(\d{1,2})-(\d{2})(\d{2})([+-]\d{1,2})$/)
+      if (!match) return false
+      const [, year, month, day, hour, min, offsetStr] = match
+      const offset = parseInt(offsetStr, 10)
+      const sign = offset >= 0 ? '+' : '-'
+      const absOffset = Math.abs(offset)
+      const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
+      const d = new Date(iso)
+      return !isNaN(d.getTime()) && d.getTime() < now
+    } catch { return false }
   })
 
   const saveTasks = useCallback(
