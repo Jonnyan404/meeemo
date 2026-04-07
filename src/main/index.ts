@@ -1,4 +1,5 @@
-import { app, globalShortcut, ipcMain } from 'electron'
+import { app, globalShortcut, ipcMain, protocol, net } from 'electron'
+import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 import { loadConfig } from './config'
 import { createMemo } from './memo-service'
@@ -7,6 +8,13 @@ import { createTray, updateTrayBadge, getTray } from './tray'
 
 app.whenReady().then(() => {
   const config = loadConfig()
+
+  // Register asset:// protocol to serve images from storage/assets
+  protocol.handle('asset', (request) => {
+    const url = request.url.replace('asset://', '')
+    const filePath = join(config.storagePath, url)
+    return net.fetch(`file://${filePath}`)
+  })
 
   registerIpcHandlers()
   createTray()
