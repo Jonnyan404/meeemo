@@ -36,7 +36,7 @@ export function updateTrayBadge(): void {
       totalUncompleted++
       if (task.reminder) {
         const d = parseReminderToDate(task.reminder)
-        if (d && d.getTime() < now) {
+        if (d && d.getTime() <= now) {
           overdueCount++
         }
       }

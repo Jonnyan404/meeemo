@@ -55,7 +55,7 @@ function parseReminderToDate(reminder: string): Date | null {
 
 function isOverdue(reminder: string): boolean {
   const d = parseReminderToDate(reminder)
-  return d ? d.getTime() < Date.now() : false
+  return d ? d.getTime() <= Date.now() : false
 }
 
 function todayDate(): string {

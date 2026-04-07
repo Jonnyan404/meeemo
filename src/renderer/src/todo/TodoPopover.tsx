@@ -64,6 +64,7 @@ export function TodoPopover() {
   const [activeFilename, setActiveFilename] = useState<string>('')
   const [newTaskText, setNewTaskText] = useState('')
   const [showCompleted, setShowCompleted] = useState(true)
+  const [showOverdueBanner, setShowOverdueBanner] = useState(false)
 
   const loadLists = useCallback(async () => {
     const all = await api.todoList()
@@ -122,7 +123,7 @@ export function TodoPopover() {
       const absOffset = Math.abs(offset)
       const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
       const d = new Date(iso)
-      return !isNaN(d.getTime()) && d.getTime() < now
+      return !isNaN(d.getTime()) && d.getTime() <= now
     } catch { return false }
   })
 
@@ -220,33 +221,61 @@ export function TodoPopover() {
         >
           {activeList?.name || 'TODO'}
         </span>
-        <button
-          onClick={() => setShowCompleted(!showCompleted)}
-          className="text-xs px-2 py-1 rounded transition-colors"
-          style={{
-            background: showCompleted ? 'rgba(0,0,0,0.06)' : 'var(--accent)',
-            color: showCompleted ? 'var(--text-secondary)' : '#fff',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          {showCompleted ? 'All' : 'Active'}
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Overdue indicator */}
+          {overdueTasks.length > 0 && (
+            <button
+              onClick={() => setShowOverdueBanner(!showOverdueBanner)}
+              className="text-xs px-1.5 py-0.5 rounded transition-colors"
+              style={{
+                background: 'rgba(180, 130, 60, 0.15)',
+                color: '#a1845c',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '10px'
+              }}
+              title="Show overdue tasks"
+            >
+              {overdueTasks.length}!
+            </button>
+          )}
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="text-xs px-2 py-1 rounded transition-colors"
+            style={{
+              background: showCompleted ? 'rgba(0,0,0,0.06)' : 'var(--accent)',
+              color: showCompleted ? 'var(--text-secondary)' : '#fff',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            {showCompleted ? 'All' : 'Active'}
+          </button>
+        </div>
       </div>
 
-      {/* Overdue alert banner */}
-      {overdueTasks.length > 0 && (
+      {/* Overdue alert banner — collapsible */}
+      {overdueTasks.length > 0 && showOverdueBanner && (
         <div
-          className="px-4 py-2 text-xs"
+          className="px-4 py-2 text-xs flex items-start gap-2"
           style={{
             background: 'rgba(180, 130, 60, 0.1)',
             color: '#a1845c',
             borderBottom: '1px solid var(--border-color)'
           }}
         >
-          <span style={{ fontWeight: 600 }}>{overdueTasks.length} overdue</span>
-          {' · '}
-          {overdueTasks.map((t) => t.text).join(', ')}
+          <div className="flex-1">
+            <span style={{ fontWeight: 600 }}>{overdueTasks.length} overdue</span>
+            {' · '}
+            {overdueTasks.map((t) => t.text).join(' || ')}
+          </div>
+          <button
+            onClick={() => setShowOverdueBanner(false)}
+            style={{ color: '#a1845c', cursor: 'pointer', fontSize: '10px', flexShrink: 0 }}
+          >
+            ▴
+          </button>
         </div>
       )}
 
