@@ -3,6 +3,7 @@ import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
+import { saveImage } from './image-service'
 import { updateTrayBadge } from './tray'
 
 // Broadcast to all windows EXCEPT the sender (ColaMD-style isInternalSave pattern)
@@ -75,6 +76,10 @@ export function registerIpcHandlers(): void {
     writeTodoRaw(filename, content)
     broadcastToOthers(e.sender, 'data-changed')
     updateTrayBadge()
+  })
+  ipcMain.handle('image:save', (_e, base64: string, ext: string) => {
+    const buffer = Buffer.from(base64, 'base64')
+    return saveImage(buffer, ext)
   })
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => updateConfig(partial))

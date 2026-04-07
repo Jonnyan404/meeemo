@@ -47,6 +47,7 @@ function configPath(storagePath: string): string {
 export function ensureStorageDirs(storagePath: string): void {
   mkdirSync(join(storagePath, 'memo'), { recursive: true })
   mkdirSync(join(storagePath, 'todo'), { recursive: true })
+  mkdirSync(join(storagePath, 'assets'), { recursive: true })
 
   const memoDir = join(storagePath, 'memo')
   if (readdirSync(memoDir).filter((f) => f.endsWith('.md')).length === 0) {

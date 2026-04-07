@@ -18,6 +18,7 @@ const api = {
   todoUncompletedCount: () => ipcRenderer.invoke('todo:uncompleted-count'),
   todoReadRaw: (filename: string) => ipcRenderer.invoke('todo:read-raw', filename),
   todoWriteRaw: (filename: string, content: string) => ipcRenderer.invoke('todo:write-raw', filename, content),
+  imageSave: (base64: string, ext: string) => ipcRenderer.invoke('image:save', base64, ext),
   configGet: () => ipcRenderer.invoke('config:get'),
   configSet: (partial: Record<string, unknown>) => ipcRenderer.invoke('config:set', partial),
   windowSetOpacity: (opacity: number) => ipcRenderer.invoke('window:set-opacity', opacity),
