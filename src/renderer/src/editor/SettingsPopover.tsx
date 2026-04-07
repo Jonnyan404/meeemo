@@ -19,6 +19,8 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle')
   const [latestVersion, setLatestVersion] = useState('')
   const [storagePath, setStoragePath] = useState('')
+  const [shortcutTarget, setShortcutTarget] = useState<'command' | 'notes' | 'task'>('command')
+  const [shortcutTargetOption, setShortcutTargetOption] = useState<'last-edit' | 'new' | 'first'>('last-edit')
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -30,6 +32,8 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setTheme(config.theme)
       setShortcut(config.globalShortcut || 'Alt+Space')
       setStoragePath(config.storagePath || '')
+      setShortcutTarget(config.shortcutTarget || 'command')
+      setShortcutTargetOption(config.shortcutTargetOption || 'last-edit')
       api.appVersion().then(setVersion)
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
@@ -100,6 +104,16 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         }
       })
     }
+  }
+
+  const handleTargetChange = (target: 'command' | 'notes' | 'task') => {
+    setShortcutTarget(target)
+    api.configSet({ shortcutTarget: target } as any)
+  }
+
+  const handleTargetOptionChange = (option: 'last-edit' | 'new' | 'first') => {
+    setShortcutTargetOption(option)
+    api.configSet({ shortcutTargetOption: option } as any)
   }
 
   const checkForUpdates = async () => {
@@ -227,6 +241,33 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       )}
       {shortcutError && (
         <div className="text-[10px] text-red-500 mt-1">{shortcutError}</div>
+      )}
+
+      {/* Shortcut Target */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mt-3 mb-2">SHORTCUT TARGET</div>
+      <select
+        value={shortcutTarget}
+        onChange={(e) => handleTargetChange(e.target.value as any)}
+        className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer"
+      >
+        <option value="command">Command Palette</option>
+        <option value="notes">Notes</option>
+        <option value="task">Tasks</option>
+      </select>
+
+      {shortcutTarget !== 'command' && (
+        <>
+          <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mt-2 mb-1">OPEN BEHAVIOR</div>
+          <select
+            value={shortcutTargetOption}
+            onChange={(e) => handleTargetOptionChange(e.target.value as any)}
+            className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer"
+          >
+            <option value="last-edit">Last Edited</option>
+            <option value="new">New</option>
+            <option value="first">First</option>
+          </select>
+        </>
       )}
 
       {/* Storage path */}
