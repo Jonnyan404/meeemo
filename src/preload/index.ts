@@ -31,16 +31,24 @@ const api = {
   changeStorage: () => ipcRenderer.invoke('app:change-storage'),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
-    ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))
+    const handler = (_e: any, filename: string) => callback(filename)
+    ipcRenderer.on('open-memo', handler)
+    return () => { ipcRenderer.removeListener('open-memo', handler) }
   },
   onShowTodo: (callback: () => void) => {
-    ipcRenderer.on('show-todo', () => callback())
+    const handler = () => callback()
+    ipcRenderer.on('show-todo', handler)
+    return () => { ipcRenderer.removeListener('show-todo', handler) }
   },
   onDataChanged: (callback: () => void) => {
-    ipcRenderer.on('data-changed', () => callback())
+    const handler = () => callback()
+    ipcRenderer.on('data-changed', handler)
+    return () => { ipcRenderer.removeListener('data-changed', handler) }
   },
   onReminderAlert: (callback: () => void) => {
-    ipcRenderer.on('reminder-alert', () => callback())
+    const handler = () => callback()
+    ipcRenderer.on('reminder-alert', handler)
+    return () => { ipcRenderer.removeListener('reminder-alert', handler) }
   }
 }
 

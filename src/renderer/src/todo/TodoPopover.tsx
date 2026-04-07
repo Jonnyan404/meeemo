@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -84,19 +84,25 @@ export function TodoPopover() {
     }
   }, [api, activeFilename])
 
+  // Use ref so IPC listeners always call the latest loadLists without re-registering
+  const loadListsRef = useRef(loadLists)
+  loadListsRef.current = loadLists
+
   useEffect(() => {
     loadLists()
   }, [loadLists])
 
+  // Register IPC listeners ONCE, use ref to call latest callback
   useEffect(() => {
-    api.onDataChanged(() => loadLists())
-  }, [api, loadLists])
-
-  useEffect(() => {
-    if (typeof api.onReminderAlert === 'function') {
-      api.onReminderAlert(() => loadLists())
+    const cleanupData = api.onDataChanged(() => loadListsRef.current())
+    const cleanupAlert = typeof api.onReminderAlert === 'function'
+      ? api.onReminderAlert(() => loadListsRef.current())
+      : undefined
+    return () => {
+      cleanupData?.()
+      cleanupAlert?.()
     }
-  }, [api, loadLists])
+  }, [api])
 
   const activeList = lists.find((l) => l.filename === activeFilename)
   const tasks = activeList?.tasks || []

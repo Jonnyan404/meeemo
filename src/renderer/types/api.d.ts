@@ -41,10 +41,10 @@ interface MeeemoAPI {
   openStorage(): Promise<void>
   changeStorage(): Promise<string | null>
   windowClose(): Promise<void>
-  onOpenMemo(callback: (filename: string) => void): void
-  onShowTodo(callback: () => void): void
-  onDataChanged(callback: () => void): void
-  onReminderAlert(callback: () => void): void
+  onOpenMemo(callback: (filename: string) => void): (() => void) | void
+  onShowTodo(callback: () => void): (() => void) | void
+  onDataChanged(callback: () => void): (() => void) | void
+  onReminderAlert(callback: () => void): (() => void) | void
 }
 declare global { interface Window { api: MeeemoAPI } }
 export {}
