@@ -97,7 +97,10 @@ export function TodoPopover() {
   useEffect(() => {
     const cleanupData = api.onDataChanged(() => loadListsRef.current())
     const cleanupAlert = typeof api.onReminderAlert === 'function'
-      ? api.onReminderAlert(() => loadListsRef.current())
+      ? api.onReminderAlert(() => {
+          loadListsRef.current()
+          setShowOverdueBanner(true) // auto-expand banner on alert
+        })
       : undefined
     return () => {
       cleanupData?.()

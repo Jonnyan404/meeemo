@@ -1,4 +1,4 @@
-import { Notification, BrowserWindow, dialog } from 'electron'
+import { app, Notification, BrowserWindow } from 'electron'
 import { listTodoLists } from './todo-service'
 import { loadConfig } from './config'
 
@@ -83,9 +83,12 @@ function checkReminders(): void {
   const { updateTrayBadge } = require('./tray')
   updateTrayBadge()
 
-  // When new alerts fire: show todo panel + notify renderer
+  // When new alerts fire: show todo panel + bounce dock + notify renderer
   if (newAlerts) {
-    broadcastToAll('reminder-alert')
+    // Bounce dock icon for attention
+    if (process.platform === 'darwin') {
+      app.dock?.bounce?.('informational')
+    }
 
     // Auto-show todo panel
     const { getTray } = require('./tray')
@@ -94,6 +97,9 @@ function checkReminders(): void {
     if (tray) {
       createTodoWindow(tray.getBounds())
     }
+
+    // Tell renderer to show overdue banner
+    broadcastToAll('reminder-alert')
   }
 }
 
