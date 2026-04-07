@@ -68,8 +68,8 @@ let intervalId: ReturnType<typeof setInterval> | null = null
 
 export function startReminderScheduler(): void {
   if (intervalId) return
-  // Check every 30 seconds
-  intervalId = setInterval(checkReminders, 30_000)
+  // Check every 60 seconds (reminders are minute-precision)
+  intervalId = setInterval(checkReminders, 60_000)
   // Also check immediately on start
   checkReminders()
 }
