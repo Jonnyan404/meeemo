@@ -18,6 +18,8 @@ export interface AppConfig {
   storagePath: string
   pinnedMemos: string[]
   globalShortcut: string
+  shortcutTarget: 'command' | 'notes' | 'task'
+  shortcutTargetOption: 'last-edit' | 'new' | 'first'
   theme: 'light' | 'dark'
   lastWindowState: WindowState
 }
@@ -26,6 +28,8 @@ const DEFAULT_CONFIG: AppConfig = {
   storagePath: join(homedir(), 'meeemo'),
   pinnedMemos: [],
   globalShortcut: 'Alt+Space',
+  shortcutTarget: 'command',
+  shortcutTargetOption: 'last-edit',
   theme: 'light',
   lastWindowState: {
     x: -1,

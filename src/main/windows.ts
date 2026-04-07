@@ -241,6 +241,32 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
   return todoWindow
 }
 
+export function openMemoDirectly(option: 'last-edit' | 'new' | 'first'): void {
+  const { listMemos, createMemo } = require('./memo-service')
+  const memos = listMemos() // already sorted by modifiedAt desc
+
+  if (option === 'new') {
+    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
+    const filename = createMemo(title)
+    createEditorWindow(filename)
+    return
+  }
+
+  if (memos.length === 0) {
+    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
+    const filename = createMemo(title)
+    createEditorWindow(filename)
+    return
+  }
+
+  if (option === 'last-edit') {
+    createEditorWindow(memos[0].filename)
+  } else {
+    // 'first' — oldest by modification time
+    createEditorWindow(memos[memos.length - 1].filename)
+  }
+}
+
 export function hidePalette(): void {
   if (paletteWindow && !paletteWindow.isDestroyed()) paletteWindow.hide()
 }

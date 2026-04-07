@@ -106,9 +106,21 @@ export function registerIpcHandlers(): void {
     }
   })
   ipcMain.handle('window:set-shortcut', (_e, shortcut: string) => {
-    const { togglePalette } = require('./windows')
+    const { togglePalette, openMemoDirectly, createTodoWindow } = require('./windows')
+    const { getTray } = require('./tray')
     globalShortcut.unregisterAll()
-    const ok = globalShortcut.register(shortcut, () => togglePalette())
+    const ok = globalShortcut.register(shortcut, () => {
+      const cfg = loadConfig()
+      const target = cfg.shortcutTarget || 'command'
+      if (target === 'command') {
+        togglePalette()
+      } else if (target === 'notes') {
+        openMemoDirectly(cfg.shortcutTargetOption || 'last-edit')
+      } else if (target === 'task') {
+        const tray = getTray()
+        if (tray) createTodoWindow(tray.getBounds())
+      }
+    })
     if (!ok) return { error: `Failed to register "${shortcut}"` }
     updateConfig({ globalShortcut: shortcut })
     return { ok: true }
