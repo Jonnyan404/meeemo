@@ -12,6 +12,10 @@ export function SystemPopover({ onClose }: SystemPopoverProps) {
   const [shortcutError, setShortcutError] = useState('')
   const [shortcutTarget, setShortcutTarget] = useState<'command' | 'notes' | 'task'>('command')
   const [shortcutTargetOption, setShortcutTargetOption] = useState<'last-edit' | 'new' | 'first'>('last-edit')
+  const [imageHostEnabled, setImageHostEnabled] = useState(false)
+  const [imageHostType, setImageHostType] = useState<'smms' | 'imgur' | 'custom'>('smms')
+  const [imageHostApiKey, setImageHostApiKey] = useState('')
+  const [imageHostUploadUrl, setImageHostUploadUrl] = useState('')
   const [storagePath, setStoragePath] = useState('')
   const [version, setVersion] = useState('')
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle')
@@ -22,6 +26,11 @@ export function SystemPopover({ onClose }: SystemPopoverProps) {
       setShortcut(config.globalShortcut || 'Alt+Space')
       setShortcutTarget(config.shortcutTarget || 'command')
       setShortcutTargetOption(config.shortcutTargetOption || 'last-edit')
+      const ih = config.imageHost || {}
+      setImageHostEnabled(ih.enabled || false)
+      setImageHostType(ih.type || 'smms')
+      setImageHostApiKey(ih.apiKey || '')
+      setImageHostUploadUrl(ih.uploadUrl || '')
       setStoragePath(config.storagePath || '')
       api.appVersion().then(setVersion)
     })
@@ -59,6 +68,10 @@ export function SystemPopover({ onClose }: SystemPopoverProps) {
   const handleTargetOptionChange = (option: 'last-edit' | 'new' | 'first') => {
     setShortcutTargetOption(option)
     api.configSet({ shortcutTargetOption: option } as any)
+  }
+
+  const handleImageHostChange = (partial: Record<string, unknown>) => {
+    api.configSet({ imageHost: partial } as any)
   }
 
   const checkForUpdates = async () => {
@@ -135,6 +148,67 @@ export function SystemPopover({ onClose }: SystemPopoverProps) {
           </select>
         </>
       )}
+
+      {/* Image Host */}
+      <div className="border-t border-[var(--border-color)] mt-3 pt-2">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider">IMAGE HOST</span>
+          <button
+            onClick={() => {
+              const next = !imageHostEnabled
+              setImageHostEnabled(next)
+              handleImageHostChange({ enabled: next })
+            }}
+            className="text-[10px] px-2 py-0.5 rounded"
+            style={{
+              background: imageHostEnabled ? 'var(--accent, #007aff)' : 'rgba(0,0,0,0.06)',
+              color: imageHostEnabled ? '#fff' : 'var(--text-secondary)',
+              cursor: 'pointer'
+            }}
+          >
+            {imageHostEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        {imageHostEnabled && (
+          <>
+            <select
+              value={imageHostType}
+              onChange={(e) => {
+                const v = e.target.value as any
+                setImageHostType(v)
+                handleImageHostChange({ type: v })
+              }}
+              className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer mb-2"
+            >
+              <option value="smms">SM.MS</option>
+              <option value="imgur">Imgur</option>
+              <option value="custom">Custom</option>
+            </select>
+            <input
+              type="text"
+              value={imageHostApiKey}
+              onChange={(e) => {
+                setImageHostApiKey(e.target.value)
+                handleImageHostChange({ apiKey: e.target.value })
+              }}
+              placeholder="API Key"
+              className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none mb-1"
+            />
+            {imageHostType === 'custom' && (
+              <input
+                type="text"
+                value={imageHostUploadUrl}
+                onChange={(e) => {
+                  setImageHostUploadUrl(e.target.value)
+                  handleImageHostChange({ uploadUrl: e.target.value })
+                }}
+                placeholder="Upload URL"
+                className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none"
+              />
+            )}
+          </>
+        )}
+      </div>
 
       {/* Storage path */}
       <div className="border-t border-[var(--border-color)] mt-3 pt-2">
