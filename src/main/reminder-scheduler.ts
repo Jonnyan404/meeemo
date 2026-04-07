@@ -1,4 +1,4 @@
-import { Notification, BrowserWindow } from 'electron'
+import { Notification, BrowserWindow, dialog } from 'electron'
 import { listTodoLists } from './todo-service'
 import { loadConfig } from './config'
 
@@ -15,7 +15,6 @@ export function parseReminderToDate(reminder: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-// Track which reminders have been notified
 const notified = new Set<string>()
 
 function broadcastToAll(channel: string, ...args: unknown[]): void {
@@ -27,14 +26,13 @@ function broadcastToAll(channel: string, ...args: unknown[]): void {
 }
 
 function sendNotification(title: string, body: string): void {
+  // Try native notification first
   try {
     if (Notification.isSupported()) {
       const n = new Notification({ title, body, silent: false })
       n.show()
     }
-  } catch (e) {
-    console.warn('[reminder] Notification failed:', e)
-  }
+  } catch { /* ignore */ }
 }
 
 function checkReminders(): void {
@@ -43,6 +41,7 @@ function checkReminders(): void {
   const now = Date.now()
   const lists = listTodoLists()
   let newAlerts = false
+  const alertMessages: string[] = []
 
   for (const list of lists) {
     for (const task of list.tasks) {
@@ -60,23 +59,21 @@ function checkReminders(): void {
         if (!notified.has(key)) {
           notified.add(key)
           newAlerts = true
-          sendNotification(
-            `Upcoming · ${list.name}`,
-            `"${task.text}" is due in ${leadMinutes} min`
-          )
+          const msg = `[${list.name}] "${task.text}" — due in ${leadMinutes} min`
+          alertMessages.push(msg)
+          sendNotification(`Upcoming · ${list.name}`, `"${task.text}" is due in ${leadMinutes} min`)
         }
       }
 
-      // Due notification — fires once when time is reached (>= means at exact time)
+      // Due notification
       if (now >= dueMs) {
         const key = `due:${task.text}@${task.reminder}`
         if (!notified.has(key)) {
           notified.add(key)
           newAlerts = true
-          sendNotification(
-            `Due Now · ${list.name}`,
-            `"${task.text}" is due now`
-          )
+          const msg = `[${list.name}] "${task.text}" — due now!`
+          alertMessages.push(msg)
+          sendNotification(`Due Now · ${list.name}`, `"${task.text}" is due now`)
         }
       }
     }
@@ -89,6 +86,7 @@ function checkReminders(): void {
   // When new alerts fire: show todo panel + notify renderer
   if (newAlerts) {
     broadcastToAll('reminder-alert')
+
     // Auto-show todo panel
     const { getTray } = require('./tray')
     const { createTodoWindow } = require('./windows')
