@@ -2,19 +2,31 @@ import { readdirSync, readFileSync, writeFileSync, unlinkSync, renameSync } from
 import { join, basename } from 'path'
 import { loadConfig } from './config'
 
-export interface TodoTask { text: string; done: boolean }
+export interface TodoTask { text: string; done: boolean; reminder?: string }
 export interface TodoList { filename: string; name: string; tasks: TodoTask[] }
 
 function todoDir(): string { return join(loadConfig().storagePath, 'todo') }
 
+const REMINDER_RE = / @(\d{4}-\d{1,2}-\d{1,2}-\d{4}[+-]\d{1,2})$/
+
 function parseTodoMd(content: string): TodoTask[] {
   return content.split('\n')
     .filter((line) => line.match(/^- \[([ x])\] /))
-    .map((line) => ({ done: line.startsWith('- [x]'), text: line.replace(/^- \[[ x]\] /, '') }))
+    .map((line) => {
+      const raw = line.replace(/^- \[[ x]\] /, '')
+      const match = raw.match(REMINDER_RE)
+      if (match) {
+        return { done: line.startsWith('- [x]'), text: raw.replace(REMINDER_RE, ''), reminder: match[1] }
+      }
+      return { done: line.startsWith('- [x]'), text: raw }
+    })
 }
 
 function serializeTodoMd(tasks: TodoTask[]): string {
-  return tasks.map((t) => `- [${t.done ? 'x' : ' '}] ${t.text}`).join('\n') + '\n'
+  return tasks.map((t) => {
+    const suffix = t.reminder ? ` @${t.reminder}` : ''
+    return `- [${t.done ? 'x' : ' '}] ${t.text}${suffix}`
+  }).join('\n') + '\n'
 }
 
 export function listTodoLists(): TodoList[] {
