@@ -1,4 +1,4 @@
-interface TodoTask { text: string; done: boolean }
+interface TodoTask { text: string; done: boolean; reminder?: string }
 interface MemoMeta { filename: string; title: string; modifiedAt: number; preview: string }
 interface TodoList { filename: string; name: string; tasks: TodoTask[] }
 interface AppConfig {

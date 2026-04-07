@@ -23,14 +23,18 @@ function SortableTodoItem({
   id,
   text,
   done,
+  reminder,
   onToggle,
-  onDelete
+  onDelete,
+  onSetReminder
 }: {
   id: string
   text: string
   done: boolean
+  reminder?: string
   onToggle: () => void
   onDelete: () => void
+  onSetReminder: (reminder: string | undefined) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
@@ -44,8 +48,10 @@ function SortableTodoItem({
       <TodoItem
         text={text}
         done={done}
+        reminder={reminder}
         onToggle={onToggle}
         onDelete={onDelete}
+        onSetReminder={onSetReminder}
         dragHandleProps={listeners}
       />
     </div>
@@ -118,6 +124,16 @@ export function TodoPopover() {
     const task = displayTasks[index]
     const newTasks = tasks.filter((t) => !(t.text === task.text && t.done === task.done))
     saveTasks(newTasks)
+  }
+
+  const handleSetReminder = (index: number, reminder: string | undefined) => {
+    const allTasks = [...tasks]
+    const task = displayTasks[index]
+    const realIndex = allTasks.findIndex((t) => t.text === task.text && t.done === task.done)
+    if (realIndex >= 0) {
+      allTasks[realIndex] = { ...allTasks[realIndex], reminder }
+      saveTasks(allTasks)
+    }
   }
 
   const handleAddTask = () => {
@@ -207,8 +223,10 @@ export function TodoPopover() {
                 id={`task-${i}`}
                 text={task.text}
                 done={task.done}
+                reminder={task.reminder}
                 onToggle={() => handleToggle(i)}
                 onDelete={() => handleDelete(i)}
+                onSetReminder={(r) => handleSetReminder(i, r)}
               />
             ))}
           </SortableContext>
