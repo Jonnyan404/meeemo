@@ -21,6 +21,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [storagePath, setStoragePath] = useState('')
   const [shortcutTarget, setShortcutTarget] = useState<'command' | 'notes' | 'task'>('command')
   const [shortcutTargetOption, setShortcutTargetOption] = useState<'last-edit' | 'new' | 'first'>('last-edit')
+  const [reminderLeadTime, setReminderLeadTime] = useState(10)
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -34,6 +35,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setStoragePath(config.storagePath || '')
       setShortcutTarget(config.shortcutTarget || 'command')
       setShortcutTargetOption(config.shortcutTargetOption || 'last-edit')
+      setReminderLeadTime(config.reminderLeadTime ?? 10)
       api.appVersion().then(setVersion)
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
@@ -104,6 +106,11 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         }
       })
     }
+  }
+
+  const handleLeadTimeChange = (minutes: number) => {
+    setReminderLeadTime(minutes)
+    api.configSet({ reminderLeadTime: minutes } as any)
   }
 
   const handleTargetChange = (target: 'command' | 'notes' | 'task') => {
@@ -269,6 +276,23 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
           </select>
         </>
       )}
+
+      {/* Reminder Lead Time */}
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mt-3 mb-2">REMINDER</div>
+      <select
+        value={reminderLeadTime}
+        onChange={(e) => handleLeadTimeChange(Number(e.target.value))}
+        className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer"
+      >
+        <option value={0}>At due time only</option>
+        <option value={5}>5 minutes before</option>
+        <option value={10}>10 minutes before</option>
+        <option value={15}>15 minutes before</option>
+        <option value={30}>30 minutes before</option>
+        <option value={60}>1 hour before</option>
+        <option value={120}>2 hours before</option>
+        <option value={1440}>1 day before</option>
+      </select>
 
       {/* Storage path */}
       <div className="border-t border-[var(--border-color)] mt-3 pt-2">

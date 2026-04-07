@@ -20,6 +20,7 @@ export interface AppConfig {
   globalShortcut: string
   shortcutTarget: 'command' | 'notes' | 'task'
   shortcutTargetOption: 'last-edit' | 'new' | 'first'
+  reminderLeadTime: number // minutes before due to notify (0 = only at due time)
   theme: 'light' | 'dark'
   lastWindowState: WindowState
 }
@@ -30,6 +31,7 @@ const DEFAULT_CONFIG: AppConfig = {
   globalShortcut: 'Alt+Space',
   shortcutTarget: 'command',
   shortcutTargetOption: 'last-edit',
+  reminderLeadTime: 10,
   theme: 'light',
   lastWindowState: {
     x: -1,

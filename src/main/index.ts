@@ -5,6 +5,7 @@ import { loadConfig } from './config'
 import { createMemo } from './memo-service'
 import { togglePalette, createEditorWindow, hidePalette, createTodoWindow, openMemoDirectly } from './windows'
 import { createTray, updateTrayBadge, getTray } from './tray'
+import { startReminderScheduler } from './reminder-scheduler'
 
 app.whenReady().then(() => {
   const config = loadConfig()
@@ -18,6 +19,7 @@ app.whenReady().then(() => {
 
   registerIpcHandlers()
   createTray()
+  startReminderScheduler()
 
   const shortcut = config.globalShortcut || 'Alt+Space'
   globalShortcut.register(shortcut, () => {

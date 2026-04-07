@@ -31,6 +31,23 @@ function fromDatetimeLocal(value: string): string {
   return `${Number(year)}-${Number(month)}-${Number(day)}-${hour}${minute}${sign}${offset}`
 }
 
+function parseReminderToDate(reminder: string): Date | null {
+  const match = reminder.match(/^(\d{4})-(\d{1,2})-(\d{1,2})-(\d{2})(\d{2})([+-]\d{1,2})$/)
+  if (!match) return null
+  const [, year, month, day, hour, min, offsetStr] = match
+  const offset = parseInt(offsetStr, 10)
+  const sign = offset >= 0 ? '+' : '-'
+  const absOffset = Math.abs(offset)
+  const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function isOverdue(reminder: string): boolean {
+  const d = parseReminderToDate(reminder)
+  return d ? d.getTime() < Date.now() : false
+}
+
 interface TodoItemProps {
   text: string
   done: boolean
@@ -51,6 +68,7 @@ export function TodoItem({
   dragHandleProps
 }: TodoItemProps) {
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const overdue = !done && reminder ? isOverdue(reminder) : false
 
   const handleClockClick = () => {
     const input = dateInputRef.current
@@ -110,7 +128,7 @@ export function TodoItem({
       <span
         className="flex-1 text-sm truncate"
         style={{
-          color: done ? 'var(--text-secondary)' : 'var(--text-primary)',
+          color: done ? 'var(--text-secondary)' : overdue ? '#a1845c' : 'var(--text-primary)',
           textDecoration: done ? 'line-through' : 'none'
         }}
       >
@@ -118,18 +136,19 @@ export function TodoItem({
       </span>
 
       {/* Reminder badge */}
-      {reminder && (
+      {reminder && !done && (
         <span
           className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded"
           style={{
-            background: 'rgba(59, 130, 246, 0.12)',
-            color: '#3b82f6',
+            background: overdue ? 'rgba(180, 130, 60, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+            color: overdue ? '#a1845c' : '#3b82f6',
             fontSize: '10px',
             lineHeight: 1.2,
             whiteSpace: 'nowrap'
           }}
+          title={overdue ? 'Overdue' : ''}
         >
-          {formatReminder(reminder)}
+          {overdue ? 'overdue · ' : ''}{formatReminder(reminder)}
         </span>
       )}
 
