@@ -38,6 +38,9 @@ const api = {
   },
   onDataChanged: (callback: () => void) => {
     ipcRenderer.on('data-changed', () => callback())
+  },
+  onReminderAlert: (callback: () => void) => {
+    ipcRenderer.on('reminder-alert', () => callback())
   }
 }
 

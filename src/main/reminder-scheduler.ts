@@ -1,4 +1,4 @@
-import { Notification } from 'electron'
+import { Notification, BrowserWindow } from 'electron'
 import { listTodoLists } from './todo-service'
 import { loadConfig } from './config'
 
@@ -19,11 +19,26 @@ export function parseReminderToDate(reminder: string): Date | null {
 // Track which reminders have been notified: "lead:text@reminder" or "due:text@reminder"
 const notified = new Set<string>()
 
+export interface OverdueInfo {
+  text: string
+  reminder: string
+  listName: string
+}
+
+function broadcastToAll(channel: string, ...args: unknown[]): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send(channel, ...args)
+    }
+  }
+}
+
 function checkReminders(): void {
   const config = loadConfig()
   const leadMinutes = config.reminderLeadTime ?? 10
   const now = Date.now()
   const lists = listTodoLists()
+  let newAlerts = false
 
   for (const list of lists) {
     for (const task of list.tasks) {
@@ -40,27 +55,36 @@ function checkReminders(): void {
         const key = `lead:${task.text}@${task.reminder}`
         if (!notified.has(key)) {
           notified.add(key)
+          newAlerts = true
           new Notification({
-            title: 'Upcoming Task',
+            title: `Upcoming · ${list.name}`,
             body: `"${task.text}" is due in ${leadMinutes} min`,
             silent: false
           }).show()
         }
       }
 
-      // Due notification
-      if (now >= dueMs && now < dueMs + 60 * 1000) {
+      // Due notification — fires once when past due
+      if (now >= dueMs) {
         const key = `due:${task.text}@${task.reminder}`
         if (!notified.has(key)) {
           notified.add(key)
+          newAlerts = true
           new Notification({
-            title: 'Task Due Now',
+            title: `Due Now · ${list.name}`,
             body: `"${task.text}" is due now`,
             silent: false
           }).show()
         }
       }
     }
+  }
+
+  // Update tray badge and notify renderer of overdue tasks
+  if (newAlerts) {
+    const { updateTrayBadge } = require('./tray')
+    updateTrayBadge()
+    broadcastToAll('reminder-alert')
   }
 }
 

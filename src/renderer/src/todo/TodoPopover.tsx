@@ -92,11 +92,29 @@ export function TodoPopover() {
     api.onDataChanged(() => loadLists())
   }, [api, loadLists])
 
+  useEffect(() => {
+    api.onReminderAlert(() => loadLists())
+  }, [api, loadLists])
+
   const activeList = lists.find((l) => l.filename === activeFilename)
   const tasks = activeList?.tasks || []
   const uncompleted = tasks.filter((t) => !t.done)
   const completed = tasks.filter((t) => t.done)
   const displayTasks = showCompleted ? [...uncompleted, ...completed] : uncompleted
+
+  const now = Date.now()
+  const overdueTasks = tasks.filter((t) => {
+    if (t.done || !t.reminder) return false
+    const match = t.reminder.match(/^(\d{4})-(\d{1,2})-(\d{1,2})-(\d{2})(\d{2})([+-]\d{1,2})$/)
+    if (!match) return false
+    const [, year, month, day, hour, min, offsetStr] = match
+    const offset = parseInt(offsetStr, 10)
+    const sign = offset >= 0 ? '+' : '-'
+    const absOffset = Math.abs(offset)
+    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
+    const d = new Date(iso)
+    return !isNaN(d.getTime()) && d.getTime() < now
+  })
 
   const saveTasks = useCallback(
     async (newTasks: TodoTask[]) => {
@@ -205,6 +223,22 @@ export function TodoPopover() {
           {showCompleted ? 'All' : 'Active'}
         </button>
       </div>
+
+      {/* Overdue alert banner */}
+      {overdueTasks.length > 0 && (
+        <div
+          className="px-4 py-2 text-xs"
+          style={{
+            background: 'rgba(180, 130, 60, 0.1)',
+            color: '#a1845c',
+            borderBottom: '1px solid var(--border-color)'
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>{overdueTasks.length} overdue</span>
+          {' · '}
+          {overdueTasks.map((t) => t.text).join(', ')}
+        </div>
+      )}
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto py-1">

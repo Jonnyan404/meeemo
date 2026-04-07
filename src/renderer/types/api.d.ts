@@ -44,6 +44,7 @@ interface MeeemoAPI {
   onOpenMemo(callback: (filename: string) => void): void
   onShowTodo(callback: () => void): void
   onDataChanged(callback: () => void): void
+  onReminderAlert(callback: () => void): void
 }
 declare global { interface Window { api: MeeemoAPI } }
 export {}
