@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 function formatReminder(reminder: string): string {
   const match = reminder.match(/^(\d+)-(\d+)-(\d+)-(\d{2})(\d{2})([+-]\d+)?$/)
@@ -18,11 +18,24 @@ function toDatetimeLocal(reminder: string): string {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${minute}`
 }
 
-function fromDatetimeLocal(value: string): string {
-  const [datePart, timePart] = value.split('T')
-  if (!datePart || !timePart) return ''
-  const [year, month, day] = datePart.split('-')
-  const [hour, minute] = timePart.split(':')
+function toDateValue(reminder: string): string {
+  const match = reminder.match(/^(\d+)-(\d+)-(\d+)-(\d{2})(\d{2})([+-]\d+)?$/)
+  if (!match) return ''
+  const [, year, month, day] = match
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
+function toTimeValue(reminder: string): string {
+  const match = reminder.match(/^(\d+)-(\d+)-(\d+)-(\d{2})(\d{2})([+-]\d+)?$/)
+  if (!match) return ''
+  const [, , , , hour, minute] = match
+  return `${hour}:${minute}`
+}
+
+function fromDateAndTime(dateVal: string, timeVal: string): string {
+  if (!dateVal || !timeVal) return ''
+  const [year, month, day] = dateVal.split('-')
+  const [hour, minute] = timeVal.split(':')
   const offset = getLocalTimezoneOffset()
   const sign = offset >= 0 ? '+' : ''
   return `${Number(year)}-${Number(month)}-${Number(day)}-${hour}${minute}${sign}${offset}`
@@ -45,6 +58,16 @@ function isOverdue(reminder: string): boolean {
   return d ? d.getTime() < Date.now() : false
 }
 
+function todayDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function nowTime(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 interface TodoItemProps {
   text: string
   done: boolean
@@ -65,17 +88,25 @@ export function TodoItem({
   dragHandleProps
 }: TodoItemProps) {
   const [showPicker, setShowPicker] = useState(false)
-  const [pickerValue, setPickerValue] = useState('')
+  const [dateValue, setDateValue] = useState('')
+  const [timeValue, setTimeValue] = useState('')
   const overdue = !done && reminder ? isOverdue(reminder) : false
 
   const handleClockClick = () => {
-    setPickerValue(reminder ? toDatetimeLocal(reminder) : '')
+    if (reminder) {
+      setDateValue(toDateValue(reminder))
+      setTimeValue(toTimeValue(reminder))
+    } else {
+      setDateValue(todayDate())
+      setTimeValue(nowTime())
+    }
     setShowPicker(true)
   }
 
   const handleConfirm = () => {
-    if (pickerValue) {
-      onSetReminder(fromDatetimeLocal(pickerValue))
+    const result = fromDateAndTime(dateValue, timeValue)
+    if (result) {
+      onSetReminder(result)
     }
     setShowPicker(false)
   }
@@ -87,15 +118,15 @@ export function TodoItem({
 
   return (
     <div
-      className="group px-3 py-2 rounded-lg mx-1 relative"
+      className="group px-3 py-1.5 rounded-lg mx-1 relative"
       style={{ transition: 'background 0.1s' }}
       onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         {/* Drag handle */}
         <span
-          className="text-xs cursor-grab active:cursor-grabbing select-none"
+          className="text-xs cursor-grab active:cursor-grabbing select-none mt-1"
           style={{ color: 'var(--text-secondary)', opacity: 0.5 }}
           {...dragHandleProps}
         >
@@ -105,7 +136,7 @@ export function TodoItem({
         {/* Checkbox */}
         <button
           onClick={onToggle}
-          className="flex items-center justify-center flex-shrink-0 transition-colors"
+          className="flex items-center justify-center flex-shrink-0 transition-colors mt-0.5"
           style={{
             width: '1.125rem',
             height: '1.125rem',
@@ -118,21 +149,37 @@ export function TodoItem({
           {done && <span style={{ color: 'white', fontSize: '10px', lineHeight: 1 }}>✓</span>}
         </button>
 
-        {/* Text */}
-        <span
-          className="flex-1 text-sm truncate"
-          style={{
-            color: done ? 'var(--text-secondary)' : overdue ? '#a1845c' : 'var(--text-primary)',
-            textDecoration: done ? 'line-through' : 'none'
-          }}
-        >
-          {text}
-        </span>
+        {/* Content column — text + date aligned */}
+        <div className="flex-1 min-w-0">
+          <span
+            className="text-sm truncate block"
+            style={{
+              color: done ? 'var(--text-secondary)' : overdue ? '#a1845c' : 'var(--text-primary)',
+              textDecoration: done ? 'line-through' : 'none'
+            }}
+          >
+            {text}
+          </span>
+          {reminder && !done && (
+            <span
+              className="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5"
+              style={{
+                background: overdue ? 'rgba(180, 130, 60, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                color: overdue ? '#a1845c' : '#3b82f6',
+                fontSize: '10px',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {overdue ? 'overdue · ' : ''}{formatReminder(reminder)}
+            </span>
+          )}
+        </div>
 
         {/* Clock button */}
         <button
           onClick={handleClockClick}
-          className="opacity-0 group-hover:opacity-100 text-xs transition-opacity flex-shrink-0"
+          className="opacity-0 group-hover:opacity-100 text-xs transition-opacity flex-shrink-0 mt-0.5"
           style={{ color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#3b82f6')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
@@ -143,7 +190,7 @@ export function TodoItem({
         {/* Delete */}
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 text-xs transition-opacity"
+          className="opacity-0 group-hover:opacity-100 text-xs transition-opacity mt-0.5"
           style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#ff3b30')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
@@ -152,76 +199,91 @@ export function TodoItem({
         </button>
       </div>
 
-      {/* Reminder date — below the task text */}
-      {reminder && !done && (
-        <div className="flex items-center gap-1 ml-[2.125rem] mt-0.5">
-          <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{
-              background: overdue ? 'rgba(180, 130, 60, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-              color: overdue ? '#a1845c' : '#3b82f6',
-              fontSize: '10px',
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {overdue ? 'overdue · ' : ''}{formatReminder(reminder)}
-          </span>
-        </div>
-      )}
-
-      {/* Date picker popover */}
+      {/* Date picker popover + backdrop */}
       {showPicker && (
-        <div
-          className="absolute left-8 top-full mt-1 z-50 rounded-lg border shadow-lg p-3"
-          style={{
-            background: 'var(--panel-bg, #fff)',
-            borderColor: 'var(--border-color)',
-            minWidth: '220px'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            type="datetime-local"
-            value={pickerValue}
-            onChange={(e) => setPickerValue(e.target.value)}
-            className="w-full px-2 py-1.5 rounded text-sm border outline-none"
-            style={{
-              background: 'rgba(0,0,0,0.04)',
-              color: 'var(--text-primary)',
-              borderColor: 'var(--border-color)'
-            }}
-            autoFocus
+        <>
+          {/* Backdrop — click outside to dismiss */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowPicker(false)}
           />
-          <div className="flex items-center gap-2 mt-2">
-            {reminder && (
+
+          {/* Picker */}
+          <div
+            className="absolute left-6 top-full mt-1 z-50 rounded-xl border shadow-xl p-4"
+            style={{
+              background: 'var(--panel-bg, #fff)',
+              borderColor: 'var(--border-color)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              minWidth: '240px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Date + Time in a row */}
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1">
+                <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-1">DATE</div>
+                <input
+                  type="date"
+                  value={dateValue}
+                  onChange={(e) => setDateValue(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg text-sm border outline-none"
+                  style={{
+                    background: 'rgba(0,0,0,0.04)',
+                    color: 'var(--text-primary)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div style={{ width: '90px' }}>
+                <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mb-1">TIME</div>
+                <input
+                  type="time"
+                  value={timeValue}
+                  onChange={(e) => setTimeValue(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg text-sm border outline-none"
+                  style={{
+                    background: 'rgba(0,0,0,0.04)',
+                    color: 'var(--text-primary)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {reminder && (
+                <button
+                  onClick={handleClear}
+                  className="text-xs px-2 py-1 rounded transition-colors"
+                  style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#ff3b30')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                >
+                  Clear
+                </button>
+              )}
+              <div className="flex-1" />
               <button
-                onClick={handleClear}
-                className="text-xs px-2 py-1 rounded transition-colors"
+                onClick={() => setShowPicker(false)}
+                className="text-xs px-2 py-1 rounded"
                 style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#ff3b30')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
-                Clear
+                Cancel
               </button>
-            )}
-            <div className="flex-1" />
-            <button
-              onClick={() => setShowPicker(false)}
-              className="text-xs px-2 py-1 rounded"
-              style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              className="text-xs px-3 py-1 rounded text-white"
-              style={{ background: 'var(--accent, #007aff)', cursor: 'pointer' }}
-            >
-              Done
-            </button>
+              <button
+                onClick={handleConfirm}
+                className="text-xs px-3 py-1.5 rounded-lg text-white font-medium"
+                style={{ background: 'var(--accent, #007aff)', cursor: 'pointer' }}
+              >
+                Done
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )
