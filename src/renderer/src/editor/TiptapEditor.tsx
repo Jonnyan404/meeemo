@@ -6,6 +6,7 @@ import Image from '@tiptap/extension-image'
 import { Markdown } from '@tiptap/markdown'
 import { useRef } from 'react'
 import { useApi } from '../hooks/use-ipc'
+import { InlineCalc } from './InlineCalcExtension'
 
 interface TiptapEditorProps {
   content: string
@@ -35,7 +36,8 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: false }),
-      Markdown.configure({ html: false })
+      Markdown.configure({ html: false }),
+      InlineCalc
     ],
     content,
     contentType: 'markdown' as any,
@@ -103,7 +105,10 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
         .tiptap-editor .tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.35em 0 0.15em; line-height: 1.3; }
         .tiptap-editor .tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.3em 0 0.1em; line-height: 1.3; }
         .tiptap-editor .tiptap p { margin: 0.2em 0; }
-        .tiptap-editor .tiptap ul, .tiptap-editor .tiptap ol { padding-left: 1.5em; margin: 0.2em 0; }
+        .tiptap-editor .tiptap ul { list-style: disc; padding-left: 1.5em; margin: 0.2em 0; }
+        .tiptap-editor .tiptap ol { list-style: decimal; padding-left: 1.5em; margin: 0.2em 0; }
+        .tiptap-editor .tiptap ul ul { list-style: circle; }
+        .tiptap-editor .tiptap ul ul ul { list-style: square; }
         .tiptap-editor .tiptap li { margin: 0.1em 0; }
         .tiptap-editor .tiptap strong { font-weight: 700; }
         .tiptap-editor .tiptap em { font-style: italic; }
