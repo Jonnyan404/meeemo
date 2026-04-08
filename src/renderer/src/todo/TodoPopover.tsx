@@ -65,6 +65,8 @@ export function TodoPopover() {
   const [newTaskText, setNewTaskText] = useState('')
   const [showCompleted, setShowCompleted] = useState(true)
   const [showOverdueBanner, setShowOverdueBanner] = useState(false)
+  const [showTrash, setShowTrash] = useState(false)
+  const [trashTasks, setTrashTasks] = useState<TodoTask[]>([])
 
   const loadLists = useCallback(async () => {
     const all = await api.todoList()
@@ -91,6 +93,7 @@ export function TodoPopover() {
 
   useEffect(() => {
     loadLists()
+    loadTrash()
   }, [loadLists])
 
   // Register IPC listeners ONCE, use ref to call latest callback
@@ -140,6 +143,16 @@ export function TodoPopover() {
     [activeFilename, api, loadLists]
   )
 
+  const loadTrash = async () => {
+    const items = await api.todoReadTrash()
+    setTrashTasks(items)
+  }
+
+  const handleToggleTrash = () => {
+    if (!showTrash) loadTrash()
+    setShowTrash(!showTrash)
+  }
+
   const handleToggle = (index: number) => {
     const allTasks = [...tasks]
     const task = displayTasks[index]
@@ -154,6 +167,8 @@ export function TodoPopover() {
 
   const handleDelete = (index: number) => {
     const task = displayTasks[index]
+    // Move to trash instead of permanent delete
+    api.todoTrashTask({ text: task.text, done: task.done, reminder: task.reminder })
     const newTasks = tasks.filter((t) => !(t.text === task.text && t.done === task.done))
     saveTasks(newTasks)
   }
@@ -229,14 +244,13 @@ export function TodoPopover() {
           {overdueTasks.length > 0 && (
             <button
               onClick={() => setShowOverdueBanner(!showOverdueBanner)}
-              className="text-xs px-1.5 py-0.5 rounded transition-colors"
+              className="text-xs px-2 py-1 rounded transition-colors"
               style={{
                 background: 'rgba(180, 130, 60, 0.15)',
                 color: '#a1845c',
                 border: 'none',
                 cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '10px'
+                fontWeight: 600
               }}
               title="Show overdue tasks"
             >
@@ -275,15 +289,85 @@ export function TodoPopover() {
           </div>
           <button
             onClick={() => setShowOverdueBanner(false)}
-            style={{ color: '#a1845c', cursor: 'pointer', fontSize: '10px', flexShrink: 0 }}
+            style={{ color: '#a1845c', cursor: 'pointer', flexShrink: 0 }}
           >
-            ▴
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
           </button>
         </div>
       )}
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto py-1">
+        {showTrash ? (
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                Recycle Bin ({trashTasks.length})
+              </span>
+              <div className="flex items-center gap-2">
+                {trashTasks.length > 0 && (
+                  <button
+                    onClick={async () => { await api.todoClearTrash(); loadTrash() }}
+                    className="text-xs"
+                    style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
+                  >
+                    Clear all
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowTrash(false)}
+                  className="text-xs"
+                  style={{ color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+            {trashTasks.length === 0 && (
+              <div className="text-center text-xs py-4" style={{ color: 'var(--text-secondary)' }}>
+                Trash is empty
+              </div>
+            )}
+            {trashTasks.map((task, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-1 py-1.5 rounded text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <span className="flex-1 truncate" style={{ textDecoration: task.done ? 'line-through' : 'none' }}>
+                  {task.text}
+                </span>
+                <button
+                  onClick={async () => {
+                    const restored = await api.todoRestoreFromTrash(i)
+                    if (restored && activeFilename) {
+                      const newTasks = [...tasks, restored]
+                      await api.todoWrite(activeFilename, newTasks)
+                    }
+                    loadTrash()
+                    loadLists()
+                  }}
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ color: 'var(--accent)', border: 'none', background: 'rgba(0,0,0,0.04)', cursor: 'pointer' }}
+                  title="Restore"
+                >
+                  Restore
+                </button>
+                <button
+                  onClick={async () => { await api.todoPermanentDelete(i); loadTrash() }}
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ color: '#ef4444', border: 'none', background: 'rgba(0,0,0,0.04)', cursor: 'pointer' }}
+                  title="Delete permanently"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+        <>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -342,6 +426,8 @@ export function TodoPopover() {
             }}
           />
         </div>
+        </>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -350,6 +436,8 @@ export function TodoPopover() {
         activeFilename={activeFilename}
         onSelect={setActiveFilename}
         onCreateList={handleCreateList}
+        onToggleTrash={handleToggleTrash}
+        trashCount={trashTasks.length}
         onDeleteList={async (filename) => {
           await api.todoDeleteList(filename)
           const remaining = lists.filter((l) => l.filename !== filename)

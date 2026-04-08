@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync, unlinkSync, renameSync } from 'fs'
+import { readdirSync, readFileSync, writeFileSync, unlinkSync, renameSync, existsSync } from 'fs'
 import { join, basename } from 'path'
 import { loadConfig } from './config'
 
@@ -31,7 +31,7 @@ function serializeTodoMd(tasks: TodoTask[]): string {
 
 export function listTodoLists(): TodoList[] {
   const dir = todoDir()
-  return readdirSync(dir).filter((f) => f.endsWith('.md')).map((filename) => {
+  return readdirSync(dir).filter((f) => f.endsWith('.md') && f !== '_trash.md').map((filename) => {
     const content = readFileSync(join(dir, filename), 'utf-8')
     return { filename, name: basename(filename, '.md'), tasks: parseTodoMd(content) }
   })
@@ -70,4 +70,36 @@ export function renameTodoList(oldFilename: string, newName: string): string {
 
 export function totalUncompleted(): number {
   return listTodoLists().reduce((sum, list) => sum + list.tasks.filter((t) => !t.done).length, 0)
+}
+
+function trashPath(): string { return join(todoDir(), '_trash.md') }
+
+export function trashTask(task: TodoTask): void {
+  const existing = existsSync(trashPath()) ? readFileSync(trashPath(), 'utf-8') : ''
+  const line = `- [${task.done ? 'x' : ' '}] ${task.text}${task.reminder ? ` @${task.reminder}` : ''}\n`
+  writeFileSync(trashPath(), existing + line)
+}
+
+export function readTrash(): TodoTask[] {
+  if (!existsSync(trashPath())) return []
+  return parseTodoMd(readFileSync(trashPath(), 'utf-8'))
+}
+
+export function clearTrash(): void {
+  if (existsSync(trashPath())) writeFileSync(trashPath(), '')
+}
+
+export function restoreFromTrash(index: number): TodoTask | null {
+  const tasks = readTrash()
+  if (index < 0 || index >= tasks.length) return null
+  const [task] = tasks.splice(index, 1)
+  writeFileSync(trashPath(), serializeTodoMd(tasks))
+  return task
+}
+
+export function permanentDeleteFromTrash(index: number): void {
+  const tasks = readTrash()
+  if (index < 0 || index >= tasks.length) return
+  tasks.splice(index, 1)
+  writeFileSync(trashPath(), serializeTodoMd(tasks))
 }
