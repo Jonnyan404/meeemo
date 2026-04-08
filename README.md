@@ -76,9 +76,23 @@ npm install
 # Run in dev mode
 npm run dev
 
-# Build distributable DMG
-npm run dist
+# Build Apple Silicon DMG
+npm run dist:mac:arm64
+
+# Build Intel DMG (targets macOS 12.7.6)
+npm run dist:mac:x64
 ```
+
+### CI release
+
+- GitHub Actions workflow: `.github/workflows/build-macos-dmg.yml`
+- Trigger methods:
+  - Manually via `workflow_dispatch`
+  - Push a tag like `v0.2.1`
+- Outputs:
+  - `Meeemo-<version>-mac-arm64.dmg`
+  - `Meeemo-<version>-mac-x64.dmg`
+- The Intel (`x64`) build is generated on `macos-13` and pins `MACOSX_DEPLOYMENT_TARGET=12.7` with `minimumSystemVersion=12.7.6` to keep compatibility with Intel Macs running macOS 12.7.6.
 
 ### Tech stack
 
@@ -160,9 +174,23 @@ npm install
 # 开发模式运行
 npm run dev
 
-# 构建 DMG 安装包
-npm run dist
+# 构建 Apple Silicon DMG
+npm run dist:mac:arm64
+
+# 构建 Intel DMG（目标兼容 macOS 12.7.6）
+npm run dist:mac:x64
 ```
+
+### CI 自动构建
+
+- GitHub Actions 工作流：`.github/workflows/build-macos-dmg.yml`
+- 触发方式：
+  - 手动执行 `workflow_dispatch`
+  - 推送 `v0.2.1` 这类 tag
+- 产物：
+  - `Meeemo-<version>-mac-arm64.dmg`
+  - `Meeemo-<version>-mac-x64.dmg`
+- Intel (`x64`) 构建运行在 `macos-13`，并固定 `MACOSX_DEPLOYMENT_TARGET=12.7` 与 `minimumSystemVersion=12.7.6`，用于兼容 macOS 12.7.6 的 Intel 机器。
 
 ---
 

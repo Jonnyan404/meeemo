@@ -7,14 +7,18 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist": "electron-vite build && electron-builder --mac dmg"
+    "dist": "npm run dist:mac:arm64",
+    "dist:mac:x64": "electron-vite build && electron-builder --mac dmg --x64 -c.mac.minimumSystemVersion=12.7.6",
+    "dist:mac:arm64": "electron-vite build && electron-builder --mac dmg --arm64"
   },
   "build": {
     "appId": "com.meeemo.app",
     "productName": "Meeemo",
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
     "mac": {
       "icon": "resources/icon.icns",
       "target": "dmg",
+      "minimumSystemVersion": "12.0.0",
       "category": "public.app-category.productivity"
     },
     "files": [
@@ -54,6 +58,6 @@
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3"
+    "vite": "^7.3.2"
   }
 }
