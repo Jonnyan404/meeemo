@@ -21,6 +21,7 @@ export interface AppConfig {
   shortcutTarget: 'command' | 'notes' | 'task'
   shortcutTargetOption: 'last-edit' | 'new' | 'first'
   reminderLeadTime: number // minutes before due to notify (0 = only at due time)
+  notificationType: 'tray' | 'system' | 'both'
   imageHost: {
     enabled: boolean
     type: 'smms' | 'imgur' | 'custom'
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: AppConfig = {
   shortcutTarget: 'command',
   shortcutTargetOption: 'last-edit',
   reminderLeadTime: 10,
+  notificationType: 'tray',
   imageHost: {
     enabled: false,
     type: 'smms',

@@ -38,6 +38,7 @@ function sendNotification(title: string, body: string): void {
 function checkReminders(): void {
   const config = loadConfig()
   const leadMinutes = config.reminderLeadTime ?? 10
+  const notificationType = config.notificationType ?? 'tray'
   const now = Date.now()
   const lists = listTodoLists()
   let newAlerts = false
@@ -61,7 +62,9 @@ function checkReminders(): void {
           newAlerts = true
           const msg = `[${list.name}] "${task.text}" — due in ${leadMinutes} min`
           alertMessages.push(msg)
-          sendNotification(`Upcoming · ${list.name}`, `"${task.text}" is due in ${leadMinutes} min`)
+          if (notificationType === 'system' || notificationType === 'both') {
+            sendNotification(`Upcoming · ${list.name}`, `"${task.text}" is due in ${leadMinutes} min`)
+          }
         }
       }
 
@@ -73,7 +76,9 @@ function checkReminders(): void {
           newAlerts = true
           const msg = `[${list.name}] "${task.text}" — due now!`
           alertMessages.push(msg)
-          sendNotification(`Due Now · ${list.name}`, `"${task.text}" is due now`)
+          if (notificationType === 'system' || notificationType === 'both') {
+            sendNotification(`Due Now · ${list.name}`, `"${task.text}" is due now`)
+          }
         }
       }
     }
@@ -90,12 +95,20 @@ function checkReminders(): void {
       app.dock?.bounce?.('informational')
     }
 
-    // Auto-show todo panel
-    const { getTray } = require('./tray')
-    const { createTodoWindow } = require('./windows')
-    const tray = getTray()
-    if (tray) {
-      createTodoWindow(tray.getBounds())
+    // Show reminder popup
+    if (notificationType === 'tray' || notificationType === 'both') {
+      const { getTray } = require('./tray')
+      const { createReminderWindow } = require('./windows')
+      const tray = getTray()
+      createReminderWindow(
+        tray?.getBounds(),
+        alertMessages.map((msg) => {
+          const match = msg.match(/^\[(.+?)\] "(.+?)" — (.+)$/)
+          return match
+            ? { title: match[2], body: `${match[3]} · ${match[1]}` }
+            : { title: msg, body: '' }
+        })
+      )
     }
 
     // Tell renderer to show overdue banner

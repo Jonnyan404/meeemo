@@ -13,6 +13,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const [level, setLevel] = useState<'always' | 'normal' | 'bottom'>('always')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [reminderLeadTime, setReminderLeadTime] = useState(10)
+  const [notificationType, setNotificationType] = useState<'tray' | 'system' | 'both'>('tray')
 
   useEffect(() => {
     api.configGet().then((config) => {
@@ -23,6 +24,7 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
       setLevel(ws.alwaysOnTop)
       setTheme(config.theme)
       setReminderLeadTime(config.reminderLeadTime ?? 10)
+      setNotificationType(config.notificationType || 'tray')
       const { r, g, b } = hexToRgb(ws.panelColor)
       document.documentElement.style.setProperty('--panel-bg', `rgba(${r},${g},${b},${ws.opacity})`)
       document.documentElement.style.setProperty('--text-primary', ws.fontColor)
@@ -73,6 +75,11 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
   const handleLeadTimeChange = (minutes: number) => {
     setReminderLeadTime(minutes)
     api.configSet({ reminderLeadTime: minutes } as any)
+  }
+
+  const handleNotificationTypeChange = (type: 'tray' | 'system' | 'both') => {
+    setNotificationType(type)
+    api.configSet({ notificationType: type } as any)
   }
 
   const THEME_DEFAULTS = {
@@ -175,6 +182,17 @@ export function SettingsPopover({ onClose }: SettingsPopoverProps) {
         <option value={60}>1 hour before</option>
         <option value={120}>2 hours before</option>
         <option value={1440}>1 day before</option>
+      </select>
+
+      <div className="text-[10px] text-[var(--text-secondary)] font-semibold tracking-wider mt-2 mb-1">NOTIFICATION</div>
+      <select
+        value={notificationType}
+        onChange={(e) => handleNotificationTypeChange(e.target.value as any)}
+        className="w-full px-2 py-1.5 rounded text-sm bg-black/5 text-[var(--text-primary)] border border-[var(--border-color)] outline-none cursor-pointer"
+      >
+        <option value="tray">Tray popup</option>
+        <option value="system">System notification</option>
+        <option value="both">Both</option>
       </select>
     </div>
   )

@@ -17,6 +17,7 @@ function loadNativeVibrancy() {
 let paletteWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
 let todoWindow: BrowserWindow | null = null
+let reminderWindow: BrowserWindow | null = null
 
 function preloadPath(): string {
   return join(__dirname, '../preload/index.js')
@@ -265,6 +266,67 @@ export function openMemoDirectly(option: 'last-edit' | 'new' | 'first'): void {
     // 'first' — oldest by modification time
     createEditorWindow(memos[memos.length - 1].filename)
   }
+}
+
+export function createReminderWindow(
+  trayBounds: Electron.Rectangle | undefined,
+  alerts: { title: string; body: string }[]
+): void {
+  // Close existing reminder window
+  if (reminderWindow && !reminderWindow.isDestroyed()) {
+    reminderWindow.close()
+    reminderWindow = null
+  }
+
+  const w = 260
+  const h = 40 + alerts.length * 50
+  const pos = trayBounds
+    ? {
+        x: Math.round(trayBounds.x + trayBounds.width / 2 - w / 2),
+        y: trayBounds.y + trayBounds.height + 4
+      }
+    : { x: 100, y: 30 }
+
+  reminderWindow = new BrowserWindow({
+    width: w,
+    height: Math.min(h, 300),
+    x: pos.x,
+    y: pos.y,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    type: 'panel',
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: preloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  loadPage(reminderWindow, 'reminder')
+
+  reminderWindow.once('ready-to-show', () => {
+    reminderWindow?.show()
+    if (reminderWindow) {
+      loadNativeVibrancy().setVibrancy(reminderWindow.getNativeWindowHandle(), 'popover')
+      reminderWindow.webContents.send('reminder-data', alerts)
+    }
+  })
+
+  // Auto-close after 10 seconds
+  setTimeout(() => {
+    if (reminderWindow && !reminderWindow.isDestroyed()) {
+      reminderWindow.close()
+      reminderWindow = null
+    }
+  }, 10_000)
+
+  reminderWindow.on('closed', () => {
+    reminderWindow = null
+  })
 }
 
 export function hidePalette(): void {
