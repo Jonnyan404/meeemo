@@ -18,6 +18,25 @@
 
 ---
 
+## Update Log
+
+### v0.2.0
+
+**TODO Task**
+- **Task Reminders & Notify** — Set due date & time on any todo. Notified via tray dropdown popup (with color-highlighted due status) or system notification. Configurable lead time and notification type (tray / system / both).
+- **Overdue Tracking** — Tray badge shows overdue count (`2!·4`). Overdue tasks highlighted in amber with auto-expanding alert banner.
+- **Recycle Bin** — Deleted tasks move to a trash tab. Restore or permanently delete anytime.
+
+**Note Editor**
+- **Image Support** — Paste or drag images into the editor. Stored locally in `~/meeemo/assets`.
+- **Configurable Shortcut Landing** — Global hotkey target is now configurable: open command palette, notes, or todo panel.
+- **Inline Calculator** — Type `10 + 20 =` and a ghost result appears. Press Tab to confirm. Supports complex math (`sqrt(144)`, `2^10`, `sin(45 deg)`), unit conversion (`5 kg to lb`, `100 cm to inch`), and full-width CJK symbols (`（）×÷，`).
+
+**Bug Fixes**
+- Fixed bullet points (`-`) not rendering in Markdown editor mode.
+
+---
+
 ## Features
 
 - **Command Palette** — Press `⌥ Space` to summon a Raycast-style palette. Search, create, and open memos instantly.
@@ -97,6 +116,23 @@ resources/       # App icon
 ### 简介
 
 Meeemo 是一款 macOS 桌面便签应用，灵感来自 Raycast。按下快捷键即可唤起命令面板，快速创建、搜索和编辑备忘录。编辑器窗口支持原生毛玻璃半透明效果，可自定义透明度、面板颜色和字体颜色。
+
+### 更新日志
+
+#### v0.2.0
+
+**TODO 待办**
+- **任务提醒与通知** — 为待办设置到期时间，通过 Tray 下拉弹窗（带颜色高亮的 due 状态）或系统通知提醒，支持配置提前通知时间和通知方式
+- **逾期追踪** — Tray 角标显示逾期数量（`2!·4`），逾期任务 amber 高亮，自动展开提醒横幅
+- **回收站** — 删除的任务进入回收站 Tab，可恢复或永久删除
+
+**笔记编辑器**
+- **图片支持** — 编辑器内粘贴或拖拽图片，本地存储于 `~/meeemo/assets`
+- **快捷键落地配置** — 全局热键目标可配置：打开命令面板、笔记或待办
+- **内联计算器** — 输入 `10 + 20 =` 后出现半透明预测结果，按 Tab 确认。支持复杂运算（`sqrt(144)`、`2^10`、`sin(45 deg)`）、单位换算（`5 kg to lb`、`100 cm to inch`），以及中文全角符号（`（）×÷，`）
+
+**Bug 修复**
+- 修复 Markdown 编辑模式下 `-` 列表不显示 bullet point 的问题
 
 ### 主要特性
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SettingsPopover } from './SettingsPopover'
+import { SystemPopover } from './SystemPopover'
 import { MenuPopover } from './MenuPopover'
 
 interface EditorHeaderProps {
@@ -17,17 +18,24 @@ interface EditorHeaderProps {
 
 export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMemo, onSwitchTodo, onRename, onClose, onPopoverChange, onMouseLeave }: EditorHeaderProps) {
   const [showSettings, setShowSettings] = useState(false)
+  const [showSystem, setShowSystem] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
   const title = filename ? filename.replace('.md', '') : 'Untitled'
 
-  const anyPopoverOpen = showSettings || showMenu
+  const anyPopoverOpen = showSettings || showSystem || showMenu
 
   useEffect(() => {
     onPopoverChange?.(anyPopoverOpen)
   }, [anyPopoverOpen, onPopoverChange])
+
+  const closeAllPopovers = () => {
+    setShowSettings(false)
+    setShowSystem(false)
+    setShowMenu(false)
+  }
 
   const startRename = () => {
     setTitleDraft(title)
@@ -49,13 +57,24 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       onMouseLeave={onMouseLeave}
     >
-      {/* Left: close button + mode toggle */}
+      {/* Left: close button + system + mode toggle */}
       <div className="flex items-center gap-2 px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
           onClick={onClose}
           className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors"
           title="Close"
         />
+        <button
+          onClick={() => { setShowSystem(!showSystem); setShowSettings(false); setShowMenu(false) }}
+          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          title="System"
+          style={{ padding: '2px' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+        </button>
         <button
           onClick={onToggleMode}
           className="text-xs bg-black/5 px-2 py-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -91,7 +110,7 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
       <div className="flex-1" />
       <div className="flex items-center gap-1 px-3 z-10" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
-          onClick={() => { setShowSettings(!showSettings); setShowMenu(false) }}
+          onClick={() => { setShowSettings(!showSettings); setShowSystem(false); setShowMenu(false) }}
           className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 transition-colors"
           title="Settings"
         >
@@ -103,7 +122,7 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
           </svg>
         </button>
         <button
-          onClick={() => { setShowMenu(!showMenu); setShowSettings(false) }}
+          onClick={() => { setShowMenu(!showMenu); setShowSettings(false); setShowSystem(false) }}
           className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-lg px-1 transition-colors"
           title="Menu"
         >
@@ -115,12 +134,13 @@ export function EditorHeader({ visible, filename, mode, onToggleMode, onSwitchMe
       {anyPopoverOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => { setShowSettings(false); setShowMenu(false) }}
+          onClick={closeAllPopovers}
         />
       )}
 
       {/* Popovers */}
       {showSettings && <SettingsPopover onClose={() => setShowSettings(false)} />}
+      {showSystem && <SystemPopover onClose={() => setShowSystem(false)} />}
       {showMenu && (
         <MenuPopover
           currentFilename={filename}

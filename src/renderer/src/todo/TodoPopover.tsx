@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -23,14 +23,18 @@ function SortableTodoItem({
   id,
   text,
   done,
+  reminder,
   onToggle,
-  onDelete
+  onDelete,
+  onSetReminder
 }: {
   id: string
   text: string
   done: boolean
+  reminder?: string
   onToggle: () => void
   onDelete: () => void
+  onSetReminder: (reminder: string | undefined) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
@@ -44,8 +48,10 @@ function SortableTodoItem({
       <TodoItem
         text={text}
         done={done}
+        reminder={reminder}
         onToggle={onToggle}
         onDelete={onDelete}
+        onSetReminder={onSetReminder}
         dragHandleProps={listeners}
       />
     </div>
@@ -58,6 +64,16 @@ export function TodoPopover() {
   const [activeFilename, setActiveFilename] = useState<string>('')
   const [newTaskText, setNewTaskText] = useState('')
   const [showCompleted, setShowCompleted] = useState(true)
+  const [showOverdueBanner, setShowOverdueBanner] = useState(false)
+  const [showTrash, setShowTrash] = useState(false)
+  const [trashTasks, setTrashTasks] = useState<TodoTask[]>([])
+
+  // Force re-render every 30s so overdue colors update in real time
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(timer)
+  }, [])
 
   const loadLists = useCallback(async () => {
     const all = await api.todoList()
@@ -78,19 +94,51 @@ export function TodoPopover() {
     }
   }, [api, activeFilename])
 
-  useEffect(() => {
-    loadLists()
-  }, [loadLists])
+  // Use ref so IPC listeners always call the latest loadLists without re-registering
+  const loadListsRef = useRef(loadLists)
+  loadListsRef.current = loadLists
 
   useEffect(() => {
-    api.onDataChanged(() => loadLists())
-  }, [api, loadLists])
+    loadLists()
+    loadTrash()
+  }, [loadLists])
+
+  // Register IPC listeners ONCE, use ref to call latest callback
+  useEffect(() => {
+    const cleanupData = api.onDataChanged(() => loadListsRef.current())
+    const cleanupAlert = typeof api.onReminderAlert === 'function'
+      ? api.onReminderAlert(() => {
+          loadListsRef.current()
+          setShowOverdueBanner(true) // auto-expand banner on alert
+        })
+      : undefined
+    return () => {
+      cleanupData?.()
+      cleanupAlert?.()
+    }
+  }, [api])
 
   const activeList = lists.find((l) => l.filename === activeFilename)
   const tasks = activeList?.tasks || []
   const uncompleted = tasks.filter((t) => !t.done)
   const completed = tasks.filter((t) => t.done)
   const displayTasks = showCompleted ? [...uncompleted, ...completed] : uncompleted
+
+  const now = Date.now()
+  const overdueTasks = tasks.filter((t) => {
+    if (t.done || !t.reminder) return false
+    try {
+      const match = t.reminder.match(/^(\d{4})-(\d{1,2})-(\d{1,2})-(\d{2})(\d{2})([+-]\d{1,2})$/)
+      if (!match) return false
+      const [, year, month, day, hour, min, offsetStr] = match
+      const offset = parseInt(offsetStr, 10)
+      const sign = offset >= 0 ? '+' : '-'
+      const absOffset = Math.abs(offset)
+      const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:00${sign}${String(absOffset).padStart(2, '0')}:00`
+      const d = new Date(iso)
+      return !isNaN(d.getTime()) && d.getTime() <= now
+    } catch { return false }
+  })
 
   const saveTasks = useCallback(
     async (newTasks: TodoTask[]) => {
@@ -101,6 +149,21 @@ export function TodoPopover() {
     },
     [activeFilename, api, loadLists]
   )
+
+  const loadTrash = async () => {
+    const items = await api.todoReadTrash()
+    setTrashTasks(items)
+  }
+
+  const handleSelectTrash = () => {
+    loadTrash()
+    setShowTrash(true)
+  }
+
+  const handleSelectTab = (filename: string) => {
+    setActiveFilename(filename)
+    setShowTrash(false)
+  }
 
   const handleToggle = (index: number) => {
     const allTasks = [...tasks]
@@ -114,10 +177,23 @@ export function TodoPopover() {
     }
   }
 
-  const handleDelete = (index: number) => {
+  const handleDelete = async (index: number) => {
     const task = displayTasks[index]
-    const newTasks = tasks.filter((t) => !(t.text === task.text && t.done === task.done))
-    saveTasks(newTasks)
+    if (!task || !activeFilename) return
+    // Single atomic IPC: remove from list + add to trash in main process
+    await api.todoDeleteTask(activeFilename, task.text, task.done)
+    loadLists()
+    loadTrash()
+  }
+
+  const handleSetReminder = (index: number, reminder: string | undefined) => {
+    const allTasks = [...tasks]
+    const task = displayTasks[index]
+    const realIndex = allTasks.findIndex((t) => t.text === task.text && t.done === task.done)
+    if (realIndex >= 0) {
+      allTasks[realIndex] = { ...allTasks[realIndex], reminder }
+      saveTasks(allTasks)
+    }
   }
 
   const handleAddTask = () => {
@@ -176,22 +252,126 @@ export function TodoPopover() {
         >
           {activeList?.name || 'TODO'}
         </span>
-        <button
-          onClick={() => setShowCompleted(!showCompleted)}
-          className="text-xs px-2 py-1 rounded transition-colors"
+        <div className="flex items-center gap-1">
+          {/* Overdue indicator */}
+          {overdueTasks.length > 0 && (
+            <button
+              onClick={() => setShowOverdueBanner(!showOverdueBanner)}
+              className="text-xs px-2 py-1 rounded transition-colors"
+              style={{
+                background: 'rgba(180, 130, 60, 0.15)',
+                color: '#a1845c',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+              title="Show overdue tasks"
+            >
+              {overdueTasks.length}!
+            </button>
+          )}
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="text-xs px-2 py-1 rounded transition-colors"
+            style={{
+              background: showCompleted ? 'rgba(0,0,0,0.06)' : 'var(--accent)',
+              color: showCompleted ? 'var(--text-secondary)' : '#fff',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            {showCompleted ? 'All' : 'Active'}
+          </button>
+        </div>
+      </div>
+
+      {/* Overdue alert banner — collapsible */}
+      {overdueTasks.length > 0 && showOverdueBanner && (
+        <div
+          className="px-4 py-2 text-xs flex items-start gap-2"
           style={{
-            background: showCompleted ? 'rgba(0,0,0,0.06)' : 'var(--accent)',
-            color: showCompleted ? 'var(--text-secondary)' : '#fff',
-            border: 'none',
-            cursor: 'pointer'
+            background: 'rgba(180, 130, 60, 0.1)',
+            color: '#a1845c',
+            borderBottom: '1px solid var(--border-color)'
           }}
         >
-          {showCompleted ? 'All' : 'Active'}
-        </button>
-      </div>
+          <div className="flex-1">
+            <span style={{ fontWeight: 600 }}>{overdueTasks.length} overdue</span>
+            {' · '}
+            {overdueTasks.map((t) => t.text).join(' || ')}
+          </div>
+          <button
+            onClick={() => setShowOverdueBanner(false)}
+            style={{ color: '#a1845c', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto py-1">
+        {showTrash ? (
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                Recycle Bin ({trashTasks.length})
+              </span>
+              {trashTasks.length > 0 && (
+                <button
+                  onClick={async () => { await api.todoClearTrash(); loadTrash() }}
+                  className="text-xs"
+                  style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+            {trashTasks.length === 0 && (
+              <div className="text-center text-xs py-4" style={{ color: 'var(--text-secondary)' }}>
+                Trash is empty
+              </div>
+            )}
+            {trashTasks.map((task, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-1 py-1.5 rounded text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <span className="flex-1 truncate" style={{ textDecoration: task.done ? 'line-through' : 'none' }}>
+                  {task.text}
+                </span>
+                <button
+                  onClick={async () => {
+                    const restored = await api.todoRestoreFromTrash(i)
+                    if (restored && activeFilename) {
+                      const newTasks = [...tasks, restored]
+                      await api.todoWrite(activeFilename, newTasks)
+                    }
+                    loadTrash()
+                    loadLists()
+                  }}
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ color: 'var(--accent)', border: 'none', background: 'rgba(0,0,0,0.04)', cursor: 'pointer' }}
+                  title="Restore"
+                >
+                  Restore
+                </button>
+                <button
+                  onClick={async () => { await api.todoPermanentDelete(i); loadTrash() }}
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ color: '#ef4444', border: 'none', background: 'rgba(0,0,0,0.04)', cursor: 'pointer' }}
+                  title="Delete permanently"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+        <>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -207,8 +387,10 @@ export function TodoPopover() {
                 id={`task-${i}`}
                 text={task.text}
                 done={task.done}
+                reminder={task.reminder}
                 onToggle={() => handleToggle(i)}
                 onDelete={() => handleDelete(i)}
+                onSetReminder={(r) => handleSetReminder(i, r)}
               />
             ))}
           </SortableContext>
@@ -248,14 +430,19 @@ export function TodoPopover() {
             }}
           />
         </div>
+        </>
+        )}
       </div>
 
       {/* Tab bar */}
       <TodoTabBar
         lists={lists.map((l) => ({ filename: l.filename, name: l.name }))}
         activeFilename={activeFilename}
-        onSelect={setActiveFilename}
+        onSelect={handleSelectTab}
         onCreateList={handleCreateList}
+        onSelectTrash={handleSelectTrash}
+        showTrash={showTrash}
+        trashCount={trashTasks.length}
         onDeleteList={async (filename) => {
           await api.todoDeleteList(filename)
           const remaining = lists.filter((l) => l.filename !== filename)

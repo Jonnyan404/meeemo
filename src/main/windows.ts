@@ -17,6 +17,7 @@ function loadNativeVibrancy() {
 let paletteWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
 let todoWindow: BrowserWindow | null = null
+let reminderWindow: BrowserWindow | null = null
 
 function preloadPath(): string {
   return join(__dirname, '../preload/index.js')
@@ -239,6 +240,104 @@ export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow
   todoWindow.on('closed', () => { todoWindow = null })
 
   return todoWindow
+}
+
+export function openMemoDirectly(option: 'last-edit' | 'new' | 'first'): void {
+  const { listMemos, createMemo } = require('./memo-service')
+  const memos = listMemos() // already sorted by modifiedAt desc
+
+  if (option === 'new') {
+    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
+    const filename = createMemo(title)
+    createEditorWindow(filename)
+    return
+  }
+
+  if (memos.length === 0) {
+    const title = `Untitled ${new Date().toISOString().slice(0, 10)}`
+    const filename = createMemo(title)
+    createEditorWindow(filename)
+    return
+  }
+
+  if (option === 'last-edit') {
+    createEditorWindow(memos[0].filename)
+  } else {
+    // 'first' — oldest by modification time
+    createEditorWindow(memos[memos.length - 1].filename)
+  }
+}
+
+export function createReminderWindow(
+  trayBounds: Electron.Rectangle | undefined,
+  alerts: { title: string; body: string }[]
+): void {
+  // Close existing reminder window
+  if (reminderWindow && !reminderWindow.isDestroyed()) {
+    reminderWindow.close()
+    reminderWindow = null
+  }
+
+  const w = 260
+  const h = 40 + alerts.length * 50
+
+  // Position directly below the tray icon (dropdown feel)
+  const pos = trayBounds
+    ? {
+        x: Math.round(trayBounds.x + trayBounds.width / 2 - w / 2),
+        y: trayBounds.y + trayBounds.height + 4
+      }
+    : {
+        // Fallback: top-right of cursor's display
+        ...(() => {
+          const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+          return { x: d.workArea.x + d.workArea.width - w - 20, y: d.workArea.y + 12 }
+        })()
+      }
+
+  reminderWindow = new BrowserWindow({
+    width: w,
+    height: Math.min(h, 300),
+    x: pos.x,
+    y: pos.y,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    type: 'panel',
+    alwaysOnTop: true,
+    visibleOnAllWorkspaces: true,
+    webPreferences: {
+      preload: preloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  reminderWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  loadPage(reminderWindow, 'reminder')
+
+  reminderWindow.once('ready-to-show', () => {
+    reminderWindow?.show()
+    if (reminderWindow) {
+      loadNativeVibrancy().setVibrancy(reminderWindow.getNativeWindowHandle(), 'popover')
+      reminderWindow.webContents.send('reminder-data', alerts)
+    }
+  })
+
+  // Auto-close after 10 seconds
+  setTimeout(() => {
+    if (reminderWindow && !reminderWindow.isDestroyed()) {
+      reminderWindow.close()
+      reminderWindow = null
+    }
+  }, 10_000)
+
+  reminderWindow.on('closed', () => {
+    reminderWindow = null
+  })
 }
 
 export function hidePalette(): void {

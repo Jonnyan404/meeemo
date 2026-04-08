@@ -65,10 +65,13 @@ export function MemoEditor() {
 
   // ---- Effects ----
 
-  // Listen for IPC: main process tells us to open a memo
+  // Listen for IPC: main process tells us to open a memo (register once, use ref)
+  const openFileRef = useRef(openFile)
+  openFileRef.current = openFile
   useEffect(() => {
-    api.onOpenMemo((fname) => openFile(fname, 'memo'))
-  }, [api, openFile])
+    const cleanup = api.onOpenMemo((fname: string) => openFileRef.current(fname, 'memo'))
+    return () => { cleanup?.() }
+  }, [api])
 
   // Re-read content when sessionId changes (mode toggle, cross-window sync).
   // openFile already loads content before bumping sessionId, so skip redundant reads.
@@ -84,9 +87,9 @@ export function MemoEditor() {
     }).catch(() => {})
   }, [sessionId]) // eslint-disable-line -- sessionId encapsulates all file identity changes
 
-  // Cross-window sync
+  // Cross-window sync (register once with cleanup)
   useEffect(() => {
-    api.onDataChanged(() => {
+    const cleanup = api.onDataChanged(() => {
       const fn = filenameRef.current
       const ft = fileTypeRef.current
       if (!fn) return
@@ -99,6 +102,7 @@ export function MemoEditor() {
         }
       }).catch(() => {})
     })
+    return () => { cleanup?.() }
   }, [api])
 
   // ---- Handlers ----

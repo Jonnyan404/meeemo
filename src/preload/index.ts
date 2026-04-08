@@ -18,6 +18,13 @@ const api = {
   todoUncompletedCount: () => ipcRenderer.invoke('todo:uncompleted-count'),
   todoReadRaw: (filename: string) => ipcRenderer.invoke('todo:read-raw', filename),
   todoWriteRaw: (filename: string, content: string) => ipcRenderer.invoke('todo:write-raw', filename, content),
+  todoTrashTask: (task: { text: string; done: boolean; reminder?: string }) => ipcRenderer.invoke('todo:trash-task', task),
+  todoDeleteTask: (filename: string, taskText: string, taskDone: boolean) => ipcRenderer.invoke('todo:delete-task', filename, taskText, taskDone),
+  todoReadTrash: () => ipcRenderer.invoke('todo:read-trash'),
+  todoClearTrash: () => ipcRenderer.invoke('todo:clear-trash'),
+  todoRestoreFromTrash: (index: number) => ipcRenderer.invoke('todo:restore-from-trash', index),
+  todoPermanentDelete: (index: number) => ipcRenderer.invoke('todo:permanent-delete', index),
+  imageSave: (base64: string, ext: string) => ipcRenderer.invoke('image:save', base64, ext),
   configGet: () => ipcRenderer.invoke('config:get'),
   configSet: (partial: Record<string, unknown>) => ipcRenderer.invoke('config:set', partial),
   windowSetOpacity: (opacity: number) => ipcRenderer.invoke('window:set-opacity', opacity),
@@ -30,13 +37,29 @@ const api = {
   changeStorage: () => ipcRenderer.invoke('app:change-storage'),
   windowClose: () => ipcRenderer.invoke('window:close'),
   onOpenMemo: (callback: (filename: string) => void) => {
-    ipcRenderer.on('open-memo', (_e, filename: string) => callback(filename))
+    const handler = (_e: any, filename: string) => callback(filename)
+    ipcRenderer.on('open-memo', handler)
+    return () => { ipcRenderer.removeListener('open-memo', handler) }
   },
   onShowTodo: (callback: () => void) => {
-    ipcRenderer.on('show-todo', () => callback())
+    const handler = () => callback()
+    ipcRenderer.on('show-todo', handler)
+    return () => { ipcRenderer.removeListener('show-todo', handler) }
   },
   onDataChanged: (callback: () => void) => {
-    ipcRenderer.on('data-changed', () => callback())
+    const handler = () => callback()
+    ipcRenderer.on('data-changed', handler)
+    return () => { ipcRenderer.removeListener('data-changed', handler) }
+  },
+  onReminderAlert: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('reminder-alert', handler)
+    return () => { ipcRenderer.removeListener('reminder-alert', handler) }
+  },
+  onReminderData: (callback: (data: { title: string; body: string }[]) => void) => {
+    const handler = (_e: any, data: any) => callback(data)
+    ipcRenderer.on('reminder-data', handler)
+    return () => { ipcRenderer.removeListener('reminder-data', handler) }
   }
 }
 

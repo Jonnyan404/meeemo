@@ -1,6 +1,6 @@
 {
   "name": "meeemo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Raycast-style desktop memo app",
   "main": "./out/main/index.js",
   "scripts": {
@@ -35,11 +35,13 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/vite": "^4.2.2",
+    "@tiptap/extension-image": "^3.22.2",
     "@tiptap/extension-task-item": "^3.21.0",
     "@tiptap/extension-task-list": "^3.21.0",
     "@tiptap/markdown": "^3.21.0",
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.21.0",
+    "mathjs": "^15.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.2"

@@ -1,8 +1,9 @@
 import { app, globalShortcut, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
-import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw } from './todo-service'
+import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw, trashTask, deleteTaskToTrash, readTrash, clearTrash, restoreFromTrash, permanentDeleteFromTrash } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
+import { saveImage } from './image-service'
 import { updateTrayBadge } from './tray'
 
 // Broadcast to all windows EXCEPT the sender (ColaMD-style isInternalSave pattern)
@@ -76,6 +77,33 @@ export function registerIpcHandlers(): void {
     broadcastToOthers(e.sender, 'data-changed')
     updateTrayBadge()
   })
+  ipcMain.handle('todo:trash-task', (e, task: any) => {
+    trashTask(task)
+    broadcastToOthers(e.sender, 'data-changed')
+  })
+  ipcMain.handle('todo:delete-task', (_e, filename: string, taskText: string, taskDone: boolean) => {
+    deleteTaskToTrash(filename, taskText, taskDone)
+    broadcastToAll('data-changed')
+    updateTrayBadge()
+  })
+  ipcMain.handle('todo:read-trash', () => readTrash())
+  ipcMain.handle('todo:clear-trash', () => {
+    clearTrash()
+    broadcastToAll('data-changed')
+  })
+  ipcMain.handle('todo:restore-from-trash', (_e, index: number) => {
+    const task = restoreFromTrash(index)
+    broadcastToAll('data-changed')
+    return task
+  })
+  ipcMain.handle('todo:permanent-delete', (_e, index: number) => {
+    permanentDeleteFromTrash(index)
+    broadcastToAll('data-changed')
+  })
+  ipcMain.handle('image:save', (_e, base64: string, ext: string) => {
+    const buffer = Buffer.from(base64, 'base64')
+    return saveImage(buffer, ext)
+  })
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => updateConfig(partial))
   ipcMain.handle('window:set-opacity', (e, opacity: number) => {
@@ -101,9 +129,21 @@ export function registerIpcHandlers(): void {
     }
   })
   ipcMain.handle('window:set-shortcut', (_e, shortcut: string) => {
-    const { togglePalette } = require('./windows')
+    const { togglePalette, openMemoDirectly, createTodoWindow } = require('./windows')
+    const { getTray } = require('./tray')
     globalShortcut.unregisterAll()
-    const ok = globalShortcut.register(shortcut, () => togglePalette())
+    const ok = globalShortcut.register(shortcut, () => {
+      const cfg = loadConfig()
+      const target = cfg.shortcutTarget || 'command'
+      if (target === 'command') {
+        togglePalette()
+      } else if (target === 'notes') {
+        openMemoDirectly(cfg.shortcutTargetOption || 'last-edit')
+      } else if (target === 'task') {
+        const tray = getTray()
+        if (tray) createTodoWindow(tray.getBounds())
+      }
+    })
     if (!ok) return { error: `Failed to register "${shortcut}"` }
     updateConfig({ globalShortcut: shortcut })
     return { ok: true }

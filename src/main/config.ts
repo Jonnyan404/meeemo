@@ -18,6 +18,16 @@ export interface AppConfig {
   storagePath: string
   pinnedMemos: string[]
   globalShortcut: string
+  shortcutTarget: 'command' | 'notes' | 'task'
+  shortcutTargetOption: 'last-edit' | 'new' | 'first'
+  reminderLeadTime: number // minutes before due to notify (0 = only at due time)
+  notificationType: 'tray' | 'system' | 'both'
+  imageHost: {
+    enabled: boolean
+    type: 'smms' | 'imgur' | 'custom'
+    apiKey: string
+    uploadUrl: string // only used for 'custom' type
+  }
   theme: 'light' | 'dark'
   lastWindowState: WindowState
 }
@@ -26,6 +36,16 @@ const DEFAULT_CONFIG: AppConfig = {
   storagePath: join(homedir(), 'meeemo'),
   pinnedMemos: [],
   globalShortcut: 'Alt+Space',
+  shortcutTarget: 'command',
+  shortcutTargetOption: 'last-edit',
+  reminderLeadTime: 10,
+  notificationType: 'tray',
+  imageHost: {
+    enabled: false,
+    type: 'smms',
+    apiKey: '',
+    uploadUrl: ''
+  },
   theme: 'light',
   lastWindowState: {
     x: -1,
@@ -47,6 +67,7 @@ function configPath(storagePath: string): string {
 export function ensureStorageDirs(storagePath: string): void {
   mkdirSync(join(storagePath, 'memo'), { recursive: true })
   mkdirSync(join(storagePath, 'todo'), { recursive: true })
+  mkdirSync(join(storagePath, 'assets'), { recursive: true })
 
   const memoDir = join(storagePath, 'memo')
   if (readdirSync(memoDir).filter((f) => f.endsWith('.md')).length === 0) {
@@ -80,6 +101,7 @@ export function loadConfig(): AppConfig {
   const config = { ...DEFAULT_CONFIG, ...saved }
   // Deep-merge lastWindowState so partial saves don't lose defaults
   config.lastWindowState = { ...DEFAULT_CONFIG.lastWindowState, ...(saved.lastWindowState || {}) }
+  config.imageHost = { ...DEFAULT_CONFIG.imageHost, ...(saved.imageHost || {}) }
   ensureStorageDirs(config.storagePath)
   return config
 }
@@ -95,6 +117,9 @@ export function updateConfig(partial: Partial<AppConfig>): AppConfig {
   // Deep-merge lastWindowState to avoid losing fields when only updating one property
   if (partial.lastWindowState) {
     updated.lastWindowState = { ...config.lastWindowState, ...partial.lastWindowState }
+  }
+  if (partial.imageHost) {
+    updated.imageHost = { ...config.imageHost, ...partial.imageHost }
   }
   saveConfig(updated)
   return updated
