@@ -8,8 +8,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "npm run dist:mac:arm64",
-    "dist:mac:x64": "electron-vite build && electron-builder --mac dmg --x64 -c.mac.minimumSystemVersion=12.7.6",
-    "dist:mac:arm64": "electron-vite build && electron-builder --mac dmg --arm64"
+    "dist:mac:x64": "electron-vite build && electron-builder --mac dmg --x64 --publish never -c.mac.minimumSystemVersion=12.7.6",
+    "dist:mac:arm64": "electron-vite build && electron-builder --mac dmg --arm64 --publish never"
   },
   "build": {
     "appId": "com.meeemo.app",

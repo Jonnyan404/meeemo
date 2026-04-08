@@ -92,7 +92,7 @@ npm run dist:mac:x64
 - Outputs:
   - `Meeemo-<version>-mac-arm64.dmg`
   - `Meeemo-<version>-mac-x64.dmg`
-- The Intel (`x64`) build is generated on `macos-13` and pins `MACOSX_DEPLOYMENT_TARGET=12.7` with `minimumSystemVersion=12.7.6` to keep compatibility with Intel Macs running macOS 12.7.6.
+- The Intel (`x64`) build is generated on `macos-15-intel` and pins `MACOSX_DEPLOYMENT_TARGET=12.7` with `minimumSystemVersion=12.7.6` to keep compatibility with Intel Macs running macOS 12.7.6.
 
 ### Tech stack
 
@@ -190,7 +190,7 @@ npm run dist:mac:x64
 - 产物：
   - `Meeemo-<version>-mac-arm64.dmg`
   - `Meeemo-<version>-mac-x64.dmg`
-- Intel (`x64`) 构建运行在 `macos-13`，并固定 `MACOSX_DEPLOYMENT_TARGET=12.7` 与 `minimumSystemVersion=12.7.6`，用于兼容 macOS 12.7.6 的 Intel 机器。
+- Intel (`x64`) 构建运行在 `macos-15-intel`，并固定 `MACOSX_DEPLOYMENT_TARGET=12.7` 与 `minimumSystemVersion=12.7.6`，用于兼容 macOS 12.7.6 的 Intel 机器。
 
 ---
 
