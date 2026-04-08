@@ -1,7 +1,7 @@
 import { app, globalShortcut, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
-import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw, trashTask, readTrash, clearTrash, restoreFromTrash, permanentDeleteFromTrash } from './todo-service'
+import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw, trashTask, deleteTaskToTrash, readTrash, clearTrash, restoreFromTrash, permanentDeleteFromTrash } from './todo-service'
 import { loadConfig, updateConfig, type AppConfig } from './config'
 import { saveImage } from './image-service'
 import { updateTrayBadge } from './tray'
@@ -77,9 +77,14 @@ export function registerIpcHandlers(): void {
     broadcastToOthers(e.sender, 'data-changed')
     updateTrayBadge()
   })
-  ipcMain.handle('todo:trash-task', (_e, task: any) => {
+  ipcMain.handle('todo:trash-task', (e, task: any) => {
     trashTask(task)
+    broadcastToOthers(e.sender, 'data-changed')
+  })
+  ipcMain.handle('todo:delete-task', (_e, filename: string, taskText: string, taskDone: boolean) => {
+    deleteTaskToTrash(filename, taskText, taskDone)
     broadcastToAll('data-changed')
+    updateTrayBadge()
   })
   ipcMain.handle('todo:read-trash', () => readTrash())
   ipcMain.handle('todo:clear-trash', () => {

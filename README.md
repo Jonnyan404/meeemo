@@ -18,6 +18,20 @@
 
 ---
 
+## Update Log
+
+### v0.2.0 — Task Reminders, Recycle Bin & Image Support
+
+- **Task Reminders** — Set due date & time on any todo item. Get notified via tray popup or system notification. Configurable lead time and notification type (tray / system / both).
+- **Overdue Tracking** — Tray badge shows overdue count (`2!·4`). Overdue tasks highlighted in amber with auto-expanding alert banner.
+- **Recycle Bin** — Deleted tasks go to trash instead of being permanently removed. Restore or permanently delete from the trash tab.
+- **Reminder Popup** — Dedicated tray dropdown panel with highlighted due status (red for *NOW*, amber for upcoming). Auto-closes after 10s.
+- **Image Support** — Paste or drag images into the editor. Stored locally in `~/meeemo/assets`.
+- **Configurable Shortcut Target** — Global hotkey can open command palette, notes, or todo panel.
+- **Separate Reminder Panel** — Reminders open a lightweight popup below the tray icon, without disturbing the todo panel.
+
+---
+
 ## Features
 
 - **Command Palette** — Press `⌥ Space` to summon a Raycast-style palette. Search, create, and open memos instantly.
@@ -97,6 +111,18 @@ resources/       # App icon
 ### 简介
 
 Meeemo 是一款 macOS 桌面便签应用，灵感来自 Raycast。按下快捷键即可唤起命令面板，快速创建、搜索和编辑备忘录。编辑器窗口支持原生毛玻璃半透明效果，可自定义透明度、面板颜色和字体颜色。
+
+### 更新日志
+
+#### v0.2.0 — 任务提醒、回收站与图片支持
+
+- **任务提醒** — 为待办设置到期时间，通过 Tray 弹窗或系统通知提醒，支持配置提前通知时间和通知方式
+- **逾期追踪** — Tray 角标显示逾期数量（`2!·4`），逾期任务 amber 高亮，自动展开提醒横幅
+- **回收站** — 删除的任务进入回收站，可恢复或永久删除
+- **提醒弹窗** — Tray 图标下方弹出独立提醒面板，due 状态颜色高亮，10 秒自动关闭
+- **图片支持** — 编辑器内粘贴或拖拽图片，本地存储于 `~/meeemo/assets`
+- **快捷键目标配置** — 全局热键可选打开命令面板、笔记或待办
+- **独立提醒面板** — 提醒弹窗与待办面板完全分离，互不干扰
 
 ### 主要特性
 

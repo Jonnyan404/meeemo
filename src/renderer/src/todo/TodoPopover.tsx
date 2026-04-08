@@ -68,6 +68,13 @@ export function TodoPopover() {
   const [showTrash, setShowTrash] = useState(false)
   const [trashTasks, setTrashTasks] = useState<TodoTask[]>([])
 
+  // Force re-render every 30s so overdue colors update in real time
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(timer)
+  }, [])
+
   const loadLists = useCallback(async () => {
     const all = await api.todoList()
     // Apply saved tab order from config
@@ -148,9 +155,14 @@ export function TodoPopover() {
     setTrashTasks(items)
   }
 
-  const handleToggleTrash = () => {
-    if (!showTrash) loadTrash()
-    setShowTrash(!showTrash)
+  const handleSelectTrash = () => {
+    loadTrash()
+    setShowTrash(true)
+  }
+
+  const handleSelectTab = (filename: string) => {
+    setActiveFilename(filename)
+    setShowTrash(false)
   }
 
   const handleToggle = (index: number) => {
@@ -165,12 +177,13 @@ export function TodoPopover() {
     }
   }
 
-  const handleDelete = (index: number) => {
+  const handleDelete = async (index: number) => {
     const task = displayTasks[index]
-    // Move to trash instead of permanent delete
-    api.todoTrashTask({ text: task.text, done: task.done, reminder: task.reminder })
-    const newTasks = tasks.filter((t) => !(t.text === task.text && t.done === task.done))
-    saveTasks(newTasks)
+    if (!task || !activeFilename) return
+    // Single atomic IPC: remove from list + add to trash in main process
+    await api.todoDeleteTask(activeFilename, task.text, task.done)
+    loadLists()
+    loadTrash()
   }
 
   const handleSetReminder = (index: number, reminder: string | undefined) => {
@@ -306,24 +319,15 @@ export function TodoPopover() {
               <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 Recycle Bin ({trashTasks.length})
               </span>
-              <div className="flex items-center gap-2">
-                {trashTasks.length > 0 && (
-                  <button
-                    onClick={async () => { await api.todoClearTrash(); loadTrash() }}
-                    className="text-xs"
-                    style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
-                  >
-                    Clear all
-                  </button>
-                )}
+              {trashTasks.length > 0 && (
                 <button
-                  onClick={() => setShowTrash(false)}
+                  onClick={async () => { await api.todoClearTrash(); loadTrash() }}
                   className="text-xs"
-                  style={{ color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                  style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
                 >
-                  Back
+                  Clear all
                 </button>
-              </div>
+              )}
             </div>
             {trashTasks.length === 0 && (
               <div className="text-center text-xs py-4" style={{ color: 'var(--text-secondary)' }}>
@@ -434,9 +438,10 @@ export function TodoPopover() {
       <TodoTabBar
         lists={lists.map((l) => ({ filename: l.filename, name: l.name }))}
         activeFilename={activeFilename}
-        onSelect={setActiveFilename}
+        onSelect={handleSelectTab}
         onCreateList={handleCreateList}
-        onToggleTrash={handleToggleTrash}
+        onSelectTrash={handleSelectTrash}
+        showTrash={showTrash}
         trashCount={trashTasks.length}
         onDeleteList={async (filename) => {
           await api.todoDeleteList(filename)

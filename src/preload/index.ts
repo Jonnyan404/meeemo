@@ -19,6 +19,7 @@ const api = {
   todoReadRaw: (filename: string) => ipcRenderer.invoke('todo:read-raw', filename),
   todoWriteRaw: (filename: string, content: string) => ipcRenderer.invoke('todo:write-raw', filename, content),
   todoTrashTask: (task: { text: string; done: boolean; reminder?: string }) => ipcRenderer.invoke('todo:trash-task', task),
+  todoDeleteTask: (filename: string, taskText: string, taskDone: boolean) => ipcRenderer.invoke('todo:delete-task', filename, taskText, taskDone),
   todoReadTrash: () => ipcRenderer.invoke('todo:read-trash'),
   todoClearTrash: () => ipcRenderer.invoke('todo:clear-trash'),
   todoRestoreFromTrash: (index: number) => ipcRenderer.invoke('todo:restore-from-trash', index),

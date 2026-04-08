@@ -43,19 +43,43 @@ export function ReminderPanel() {
           ✕
         </button>
       </div>
-      {alerts.map((a, i) => (
-        <div
-          key={i}
-          className="text-xs py-1.5"
-          style={{
-            color: 'var(--text-primary)',
-            borderTop: i > 0 ? '1px solid var(--border-color)' : 'none'
-          }}
-        >
-          <div className="font-medium">{a.title}</div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>{a.body}</div>
-        </div>
-      ))}
+      {alerts.map((a, i) => {
+        // body format: "due now! · ListName" or "due in X min · ListName"
+        const [dueStatus, listName] = a.body.split(' · ')
+        const isNow = dueStatus?.includes('now')
+
+        return (
+          <div
+            key={i}
+            className="py-2"
+            style={{
+              borderTop: i > 0 ? '1px solid var(--border-color)' : 'none'
+            }}
+          >
+            <div
+              className="text-xs font-medium mb-1"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {a.title}
+            </div>
+            <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  fontWeight: 700,
+                  color: isNow ? '#ef4444' : '#f59e0b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em'
+                }}
+              >
+                {dueStatus}
+              </span>
+              {listName && (
+                <span style={{ color: 'var(--text-secondary)' }}>· {listName}</span>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

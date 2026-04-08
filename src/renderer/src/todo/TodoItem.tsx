@@ -179,6 +179,7 @@ export function TodoItem({
         {/* Clock button */}
         <button
           onClick={handleClockClick}
+          onPointerDown={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 text-xs transition-opacity flex-shrink-0 mt-0.5"
           style={{ color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#3b82f6')}
@@ -190,6 +191,7 @@ export function TodoItem({
         {/* Delete */}
         <button
           onClick={onDelete}
+          onPointerDown={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 text-xs transition-opacity mt-0.5"
           style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#ff3b30')}

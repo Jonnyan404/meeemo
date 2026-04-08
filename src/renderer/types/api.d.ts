@@ -30,6 +30,13 @@ interface MeeemoAPI {
   todoUncompletedCount(): Promise<number>
   todoReadRaw(filename: string): Promise<string>
   todoWriteRaw(filename: string, content: string): Promise<void>
+  todoTrashTask(task: { text: string; done: boolean; reminder?: string }): Promise<void>
+  todoDeleteTask(filename: string, taskText: string, taskDone: boolean): Promise<void>
+  todoReadTrash(): Promise<TodoTask[]>
+  todoClearTrash(): Promise<void>
+  todoRestoreFromTrash(index: number): Promise<TodoTask | null>
+  todoPermanentDelete(index: number): Promise<void>
+  imageSave(base64: string, ext: string): Promise<string>
   configGet(): Promise<AppConfig>
   configSet(partial: Partial<AppConfig>): Promise<AppConfig>
   windowSetOpacity(opacity: number): Promise<void>

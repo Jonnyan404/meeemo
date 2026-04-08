@@ -1,4 +1,5 @@
 import { app, Notification, BrowserWindow } from 'electron'
+import { execFile } from 'child_process'
 import { listTodoLists } from './todo-service'
 import { loadConfig } from './config'
 
@@ -25,14 +26,24 @@ function broadcastToAll(channel: string, ...args: unknown[]): void {
   }
 }
 
+let lastNotification: Notification | null = null
+
 function sendNotification(title: string, body: string): void {
-  // Try native notification first
+  // Try Electron native first
   try {
     if (Notification.isSupported()) {
-      const n = new Notification({ title, body, silent: false })
-      n.show()
+      lastNotification = new Notification({ title, body, silent: false })
+      lastNotification.show()
+      return
     }
-  } catch { /* ignore */ }
+  } catch { /* fall through to osascript */ }
+
+  // Fallback: osascript on macOS
+  if (process.platform === 'darwin') {
+    const safeTitle = title.replace(/["\\]/g, '\\$&')
+    const safeBody = body.replace(/["\\]/g, '\\$&')
+    execFile('osascript', ['-e', `display notification "${safeBody}" with title "${safeTitle}"`])
+  }
 }
 
 function checkReminders(): void {
@@ -88,7 +99,7 @@ function checkReminders(): void {
   const { updateTrayBadge } = require('./tray')
   updateTrayBadge()
 
-  // When new alerts fire: show todo panel + bounce dock + notify renderer
+  // When new alerts fire: bounce dock + show reminder popup + notify renderer
   if (newAlerts) {
     // Bounce dock icon for attention
     if (process.platform === 'darwin') {
@@ -111,8 +122,12 @@ function checkReminders(): void {
       )
     }
 
-    // Tell renderer to show overdue banner
-    broadcastToAll('reminder-alert')
+    // Tell visible renderers to show overdue banner (skip hidden windows like todo panel)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed() && win.isVisible()) {
+        win.webContents.send('reminder-alert')
+      }
+    }
   }
 }
 
@@ -120,8 +135,8 @@ let intervalId: ReturnType<typeof setInterval> | null = null
 
 export function startReminderScheduler(): void {
   if (intervalId) return
-  intervalId = setInterval(checkReminders, 60_000)
   checkReminders()
+  intervalId = setInterval(checkReminders, 5_000)
 }
 
 export function stopReminderScheduler(): void {

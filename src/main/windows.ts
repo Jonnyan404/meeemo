@@ -280,12 +280,20 @@ export function createReminderWindow(
 
   const w = 260
   const h = 40 + alerts.length * 50
+
+  // Position directly below the tray icon (dropdown feel)
   const pos = trayBounds
     ? {
         x: Math.round(trayBounds.x + trayBounds.width / 2 - w / 2),
         y: trayBounds.y + trayBounds.height + 4
       }
-    : { x: 100, y: 30 }
+    : {
+        // Fallback: top-right of cursor's display
+        ...(() => {
+          const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+          return { x: d.workArea.x + d.workArea.width - w - 20, y: d.workArea.y + 12 }
+        })()
+      }
 
   reminderWindow = new BrowserWindow({
     width: w,
@@ -299,12 +307,15 @@ export function createReminderWindow(
     skipTaskbar: true,
     type: 'panel',
     alwaysOnTop: true,
+    visibleOnAllWorkspaces: true,
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
       nodeIntegration: false
     }
   })
+
+  reminderWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   loadPage(reminderWindow, 'reminder')
 

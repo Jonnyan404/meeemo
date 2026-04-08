@@ -74,6 +74,17 @@ export function totalUncompleted(): number {
 
 function trashPath(): string { return join(todoDir(), '_trash.md') }
 
+/** Atomic: remove task from list file and add to trash in one operation */
+export function deleteTaskToTrash(filename: string, taskText: string, taskDone: boolean): void {
+  const filePath = join(todoDir(), filename)
+  const tasks = parseTodoMd(readFileSync(filePath, 'utf-8'))
+  const idx = tasks.findIndex((t) => t.text === taskText && t.done === taskDone)
+  if (idx < 0) return
+  const [removed] = tasks.splice(idx, 1)
+  writeFileSync(filePath, serializeTodoMd(tasks))
+  trashTask(removed)
+}
+
 export function trashTask(task: TodoTask): void {
   const existing = existsSync(trashPath()) ? readFileSync(trashPath(), 'utf-8') : ''
   const line = `- [${task.done ? 'x' : ' '}] ${task.text}${task.reminder ? ` @${task.reminder}` : ''}\n`

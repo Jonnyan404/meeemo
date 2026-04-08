@@ -22,7 +22,8 @@ interface TodoTabBarProps {
   onDeleteList: (filename: string) => void
   onRenameList: (filename: string, newName: string) => void
   onReorder: (filenames: string[]) => void
-  onToggleTrash: () => void
+  onSelectTrash: () => void
+  showTrash: boolean
   trashCount: number
 }
 
@@ -54,7 +55,7 @@ function SortableTab({ filename, name, isActive, onSelect }: {
   )
 }
 
-export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDeleteList, onRenameList, onReorder, onToggleTrash, trashCount }: TodoTabBarProps) {
+export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDeleteList, onRenameList, onReorder, onSelectTrash, showTrash, trashCount }: TodoTabBarProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [showManage, setShowManage] = useState(false)
@@ -179,19 +180,25 @@ export function TodoTabBar({ lists, activeFilename, onSelect, onCreateList, onDe
 
       <div className="flex-1" />
 
-      {trashCount > 0 && (
-        <button
-          onClick={onToggleTrash}
-          className="text-sm transition-colors"
-          style={{ color: 'var(--text-secondary)', border: 'none', background: 'none', cursor: 'pointer' }}
-          title="Recycle bin"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
-      )}
+      <button
+        onClick={onSelectTrash}
+        className="px-2 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1"
+        style={{
+          background: showTrash ? 'var(--accent)' : 'none',
+          color: showTrash ? '#fff' : 'var(--text-secondary)',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+        title="Recycle bin"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+        {trashCount > 0 && <span>{trashCount}</span>}
+      </button>
+
+      <div style={{ width: '6px' }} />
 
       <button
         onClick={() => setShowManage(!showManage)}
