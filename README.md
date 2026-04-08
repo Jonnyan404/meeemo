@@ -88,7 +88,7 @@ npm run dist:mac:x64
 - GitHub Actions workflow: `.github/workflows/build-macos-dmg.yml`
 - Trigger methods:
   - Manually via `workflow_dispatch`
-  - Push a tag like `v0.2.1`
+  - Publish a GitHub Release
 - Outputs:
   - `Meeemo-<version>-mac-arm64.dmg`
   - `Meeemo-<version>-mac-x64.dmg`
@@ -186,7 +186,7 @@ npm run dist:mac:x64
 - GitHub Actions 工作流：`.github/workflows/build-macos-dmg.yml`
 - 触发方式：
   - 手动执行 `workflow_dispatch`
-  - 推送 `v0.2.1` 这类 tag
+  - 发布 GitHub Release
 - 产物：
   - `Meeemo-<version>-mac-arm64.dmg`
   - `Meeemo-<version>-mac-x64.dmg`
