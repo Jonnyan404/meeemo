@@ -2,9 +2,10 @@ import { app, globalShortcut, ipcMain, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { listMemos, searchMemos, readMemo, writeMemo, createMemo, deleteMemo, renameMemo } from './memo-service'
 import { listTodoLists, readTodoList, writeTodoList, createTodoList, deleteTodoList, renameTodoList, totalUncompleted, readTodoRaw, writeTodoRaw, trashTask, deleteTaskToTrash, readTrash, clearTrash, restoreFromTrash, permanentDeleteFromTrash } from './todo-service'
-import { loadConfig, updateConfig, type AppConfig } from './config'
+import { loadConfig, resetStoragePath, updateConfig, type AppConfig } from './config'
 import { saveImage } from './image-service'
 import { updateTrayBadge } from './tray'
+import { migrateStorage } from './storage-migration-service'
 
 // Broadcast to all windows EXCEPT the sender (ColaMD-style isInternalSave pattern)
 function broadcastToOthers(senderContents: Electron.WebContents | null, channel: string, ...args: unknown[]): void {
@@ -105,7 +106,16 @@ export function registerIpcHandlers(): void {
     return saveImage(buffer, ext)
   })
   ipcMain.handle('config:get', () => loadConfig())
-  ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => updateConfig(partial))
+  ipcMain.handle('config:set', (_e, partial: Partial<AppConfig>) => {
+    const updated = updateConfig(partial)
+    const nextBlur = (partial.lastWindowState as any)?.blur
+    if (typeof nextBlur === 'number') {
+      const { applyEditorBlur } = require('./windows')
+      applyEditorBlur(nextBlur)
+    }
+    broadcastToAll('config-changed')
+    return updated
+  })
   ipcMain.handle('window:set-opacity', (e, opacity: number) => {
     BrowserWindow.fromWebContents(e.sender)?.setOpacity(opacity)
   })
@@ -154,6 +164,14 @@ export function registerIpcHandlers(): void {
     const config = loadConfig()
     shell.openPath(config.storagePath)
   })
+  ipcMain.handle('app:open-settings', (_e, section?: string) => {
+    const { createSettingsWindow } = require('./windows')
+    createSettingsWindow(section || 'general')
+  })
+  ipcMain.handle('app:open-memo', (_e, filename: string) => {
+    const { createEditorWindow } = require('./windows')
+    createEditorWindow(filename)
+  })
   ipcMain.handle('app:change-storage', async () => {
     const { dialog } = require('electron')
     const win = BrowserWindow.getAllWindows()[0]
@@ -164,7 +182,19 @@ export function registerIpcHandlers(): void {
     if (result.canceled || result.filePaths.length === 0) return null
     const newPath = result.filePaths[0]
     const updated = updateConfig({ storagePath: newPath })
-    return updated.storagePath
+    broadcastToAll('config-changed')
+    return updated
+  })
+  ipcMain.handle('app:reset-storage', () => {
+    const updated = resetStoragePath()
+    broadcastToAll('config-changed')
+    return updated
+  })
+  ipcMain.handle('app:migrate-storage', (_e, sourcePath: string, keepSource: boolean) => {
+    const config = loadConfig()
+    const result = migrateStorage(sourcePath, config.storagePath, { keepSource })
+    broadcastToAll('data-changed')
+    return result
   })
   ipcMain.handle('window:close', (e) => { BrowserWindow.fromWebContents(e.sender)?.close() })
 }

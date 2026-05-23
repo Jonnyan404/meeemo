@@ -1,6 +1,9 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
-import { join } from 'path'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFileSync } from 'fs'
+import { join, resolve } from 'path'
 import { homedir } from 'os'
+import { app } from 'electron'
+
+export const DEFAULT_STORAGE_PATH = join(homedir(), 'meeemo')
 
 export interface WindowState {
   x: number
@@ -16,6 +19,7 @@ export interface WindowState {
 
 export interface AppConfig {
   storagePath: string
+  storagePathHistory: string[]
   pinnedMemos: string[]
   globalShortcut: string
   shortcutTarget: 'command' | 'notes' | 'task'
@@ -28,12 +32,13 @@ export interface AppConfig {
     apiKey: string
     uploadUrl: string // only used for 'custom' type
   }
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'system'
   lastWindowState: WindowState
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  storagePath: join(homedir(), 'meeemo'),
+  storagePath: DEFAULT_STORAGE_PATH,
+  storagePathHistory: [],
   pinnedMemos: [],
   globalShortcut: 'Alt+Space',
   shortcutTarget: 'command',
@@ -46,22 +51,61 @@ const DEFAULT_CONFIG: AppConfig = {
     apiKey: '',
     uploadUrl: ''
   },
-  theme: 'light',
+  theme: 'system',
   lastWindowState: {
     x: -1,
     y: -1,
     width: 400,
     height: 450,
-    opacity: 0.85,
-    blur: 20,
+    opacity: 0.5,
+    blur: 24,
     panelColor: '#ffffff',
     fontColor: '#1a1a1a',
     alwaysOnTop: 'always'
   }
 }
 
-function configPath(storagePath: string): string {
-  return join(storagePath, 'config.json')
+function configFilePath(): string {
+  return join(app.getPath('userData'), 'config.json')
+}
+
+function normalizeStoragePath(path: string): string {
+  return resolve(path)
+}
+
+function normalizeStoragePathHistory(paths: string[], currentPath: string): string[] {
+  const current = normalizeStoragePath(currentPath)
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  const append = (path: string): void => {
+    if (!path) return
+    const normalized = normalizeStoragePath(path)
+    if (seen.has(normalized)) return
+    seen.add(normalized)
+    result.push(normalized)
+  }
+
+  for (const path of paths) {
+    if (result.length >= 5 && !seen.has(current)) break
+    if (result.length >= 6) break
+    append(path)
+  }
+  append(current)
+
+  return result
+}
+
+function storagePathHistoryWithLegacyDefault(saved: Partial<AppConfig>, currentPath: string): string[] {
+  const candidates = [...(saved.storagePathHistory || [])]
+  if (
+    saved.storagePath &&
+    (!saved.storagePathHistory || saved.storagePathHistory.length === 0) &&
+    normalizeStoragePath(saved.storagePath) !== normalizeStoragePath(DEFAULT_STORAGE_PATH)
+  ) {
+    candidates.push(DEFAULT_STORAGE_PATH)
+  }
+  return normalizeStoragePathHistory(candidates, currentPath)
 }
 
 export function ensureStorageDirs(storagePath: string): void {
@@ -87,11 +131,21 @@ export function ensureStorageDirs(storagePath: string): void {
 }
 
 export function loadConfig(): AppConfig {
-  const defaultPath = DEFAULT_CONFIG.storagePath
-  const cfgFile = configPath(defaultPath)
+  const cfgFile = configFilePath()
+
+  // One-time migration: move legacy ~/meeemo/config.json to userData
+  if (!existsSync(cfgFile)) {
+    const legacyCfg = join(homedir(), 'meeemo', 'config.json')
+    if (existsSync(legacyCfg)) {
+      mkdirSync(app.getPath('userData'), { recursive: true })
+      copyFileSync(legacyCfg, cfgFile)
+    }
+  }
 
   if (!existsSync(cfgFile)) {
-    ensureStorageDirs(defaultPath)
+    const defaultStoragePath = DEFAULT_CONFIG.storagePath
+    ensureStorageDirs(defaultStoragePath)
+    mkdirSync(app.getPath('userData'), { recursive: true })
     writeFileSync(cfgFile, JSON.stringify(DEFAULT_CONFIG, null, 2))
     return { ...DEFAULT_CONFIG }
   }
@@ -99,7 +153,7 @@ export function loadConfig(): AppConfig {
   const raw = readFileSync(cfgFile, 'utf-8')
   const saved = JSON.parse(raw) as Partial<AppConfig>
   const config = { ...DEFAULT_CONFIG, ...saved }
-  // Deep-merge lastWindowState so partial saves don't lose defaults
+  config.storagePathHistory = storagePathHistoryWithLegacyDefault(saved, config.storagePath)
   config.lastWindowState = { ...DEFAULT_CONFIG.lastWindowState, ...(saved.lastWindowState || {}) }
   config.imageHost = { ...DEFAULT_CONFIG.imageHost, ...(saved.imageHost || {}) }
   ensureStorageDirs(config.storagePath)
@@ -107,13 +161,22 @@ export function loadConfig(): AppConfig {
 }
 
 export function saveConfig(config: AppConfig): void {
+  mkdirSync(app.getPath('userData'), { recursive: true })
+  writeFileSync(configFilePath(), JSON.stringify(config, null, 2))
   ensureStorageDirs(config.storagePath)
-  writeFileSync(configPath(config.storagePath), JSON.stringify(config, null, 2))
 }
 
 export function updateConfig(partial: Partial<AppConfig>): AppConfig {
   const config = loadConfig()
   const updated = { ...config, ...partial }
+  if (partial.storagePath && normalizeStoragePath(partial.storagePath) !== normalizeStoragePath(config.storagePath)) {
+    updated.storagePathHistory = normalizeStoragePathHistory(
+      [config.storagePath, ...(partial.storagePathHistory || config.storagePathHistory)],
+      partial.storagePath
+    )
+  } else if (partial.storagePathHistory) {
+    updated.storagePathHistory = normalizeStoragePathHistory(partial.storagePathHistory, updated.storagePath)
+  }
   // Deep-merge lastWindowState to avoid losing fields when only updating one property
   if (partial.lastWindowState) {
     updated.lastWindowState = { ...config.lastWindowState, ...partial.lastWindowState }
@@ -123,4 +186,8 @@ export function updateConfig(partial: Partial<AppConfig>): AppConfig {
   }
   saveConfig(updated)
   return updated
+}
+
+export function resetStoragePath(): AppConfig {
+  return updateConfig({ storagePath: DEFAULT_STORAGE_PATH })
 }

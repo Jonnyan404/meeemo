@@ -1,11 +1,12 @@
-interface TodoTask { text: string; done: boolean; reminder?: string }
+interface TodoTask { text: string; done: boolean; reminder?: string; pinned?: boolean }
 interface MemoMeta { filename: string; title: string; modifiedAt: number; preview: string }
 interface TodoList { filename: string; name: string; tasks: TodoTask[] }
 interface AppConfig {
   storagePath: string
+  storagePathHistory: string[]
   pinnedMemos: string[]
   globalShortcut: string
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'system'
   lastWindowState: {
     x: number; y: number; width: number; height: number
     opacity: number; blur: number; panelColor: string; fontColor: string
@@ -46,12 +47,20 @@ interface MeeemoAPI {
   appVersion(): Promise<string>
   openUrl(url: string): Promise<void>
   openStorage(): Promise<void>
-  changeStorage(): Promise<string | null>
+  changeStorage(): Promise<AppConfig | null>
+  resetStorage(): Promise<AppConfig>
+  migrateStorage(sourcePath: string, keepSource: boolean): Promise<{ copied: number; renamed: number; removedSource: boolean }>
+  openSettings(section?: string): Promise<void>
+  openMemo(filename: string): Promise<void>
   windowClose(): Promise<void>
   onOpenMemo(callback: (filename: string) => void): (() => void) | void
   onShowTodo(callback: () => void): (() => void) | void
+  onFocusNewTodo(callback: () => void): (() => void) | void
   onDataChanged(callback: () => void): (() => void) | void
   onReminderAlert(callback: () => void): (() => void) | void
+  onReminderData(callback: (data: { title: string; body: string }[]) => void): (() => void) | void
+  onConfigChanged(callback: () => void): (() => void) | void
+  onSettingsNavigate(callback: (section: string) => void): (() => void) | void
 }
 declare global { interface Window { api: MeeemoAPI } }
 export {}

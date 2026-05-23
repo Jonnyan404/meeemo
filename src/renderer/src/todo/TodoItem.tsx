@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 function formatReminder(reminder: string): string {
   const match = reminder.match(/^(\d+)-(\d+)-(\d+)-(\d{2})(\d{2})([+-]\d+)?$/)
@@ -72,9 +72,12 @@ interface TodoItemProps {
   text: string
   done: boolean
   reminder?: string
+  pinned?: boolean
   onToggle: () => void
   onDelete: () => void
   onSetReminder: (reminder: string | undefined) => void
+  onRename: (text: string) => void
+  onTogglePin: () => void
   dragHandleProps?: Record<string, unknown>
 }
 
@@ -82,15 +85,45 @@ export function TodoItem({
   text,
   done,
   reminder,
+  pinned,
   onToggle,
   onDelete,
   onSetReminder,
+  onRename,
+  onTogglePin,
   dragHandleProps
 }: TodoItemProps) {
   const [showPicker, setShowPicker] = useState(false)
   const [dateValue, setDateValue] = useState('')
   const [timeValue, setTimeValue] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(text)
+  const inputRef = useRef<HTMLInputElement>(null)
   const overdue = !done && reminder ? isOverdue(reminder) : false
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isEditing])
+
+  const beginEdit = () => {
+    if (done) return
+    setDraft(text)
+    setIsEditing(true)
+  }
+
+  const commitEdit = () => {
+    const next = draft.trim()
+    if (next && next !== text) onRename(next)
+    setIsEditing(false)
+  }
+
+  const cancelEdit = () => {
+    setDraft(text)
+    setIsEditing(false)
+  }
 
   const handleClockClick = () => {
     if (reminder) {
@@ -149,17 +182,43 @@ export function TodoItem({
           {done && <span style={{ color: 'white', fontSize: '10px', lineHeight: 1 }}>✓</span>}
         </button>
 
-        {/* Content column — text + date aligned */}
+        {/* Content column, text + date aligned */}
         <div className="flex-1 min-w-0">
-          <span
-            className="text-sm truncate block"
-            style={{
-              color: done ? 'var(--text-secondary)' : overdue ? '#a1845c' : 'var(--text-primary)',
-              textDecoration: done ? 'line-through' : 'none'
-            }}
-          >
-            {text}
-          </span>
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  commitEdit()
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  cancelEdit()
+                }
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-sm block w-full bg-transparent outline-none border-0 p-0"
+              style={{
+                color: 'var(--text-primary)',
+                font: 'inherit'
+              }}
+            />
+          ) : (
+            <span
+              className="text-sm truncate block"
+              style={{
+                color: done ? 'var(--text-secondary)' : overdue ? '#a1845c' : 'var(--text-primary)',
+                textDecoration: done ? 'line-through' : 'none',
+                cursor: done ? 'default' : 'text'
+              }}
+              onDoubleClick={beginEdit}
+            >
+              {text}
+            </span>
+          )}
           {reminder && !done && (
             <span
               className="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5"
@@ -186,6 +245,17 @@ export function TodoItem({
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
         >
           🕐
+        </button>
+
+        {/* Pin button */}
+        <button
+          onClick={onTogglePin}
+          onPointerDown={(e) => e.stopPropagation()}
+          className={`${pinned ? '' : 'opacity-0 group-hover:opacity-100'} text-xs transition-opacity flex-shrink-0 mt-0.5`}
+          style={{ cursor: 'pointer', fontSize: '12px', opacity: pinned ? 1 : undefined }}
+          title={pinned ? 'Unpin' : 'Pin to top'}
+        >
+          📌
         </button>
 
         {/* Delete */}

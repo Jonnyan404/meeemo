@@ -18,6 +18,7 @@ let paletteWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
 let todoWindow: BrowserWindow | null = null
 let reminderWindow: BrowserWindow | null = null
+let settingsWindow: BrowserWindow | null = null
 
 function preloadPath(): string {
   return join(__dirname, '../preload/index.js')
@@ -140,8 +141,14 @@ export function createEditorWindow(filename?: string): BrowserWindow {
     }
   })
 
-  // Native vibrancy always on — blur is fixed, opacity via CSS --panel-bg alpha
-  loadNativeVibrancy().setVibrancy(editorWindow.getNativeWindowHandle(), 'under-window')
+  // Private CGSSetWindowBackgroundBlurRadius blurs the screen content behind
+  // the window directly (the same trick Terminal / wezterm / ghostty use).
+  // NSVisualEffectView would paint an opaque material instead.
+  try {
+    loadNativeVibrancy().setBackgroundBlurRadius(editorWindow.getNativeWindowHandle(), ws.blur ?? 24)
+  } catch (e) {
+    console.warn('[blur] setBackgroundBlurRadius failed:', (e as Error).message)
+  }
 
   if (ws.alwaysOnTop === 'always') {
     editorWindow.setAlwaysOnTop(true, 'floating')
@@ -161,14 +168,16 @@ export function createEditorWindow(filename?: string): BrowserWindow {
   editorWindow.on('close', () => {
     if (editorWindow && !editorWindow.isDestroyed()) {
       const bounds = editorWindow.getBounds()
+      // Only persist bounds; let updateConfig deep-merge keep opacity/colors/etc.
+      // Bug fix: previously spread `config.lastWindowState` (closure snapshot from window open),
+      // which overwrote any panelColor/fontColor/opacity changes made during the session.
       updateConfig({
         lastWindowState: {
-          ...config.lastWindowState,
           x: bounds.x,
           y: bounds.y,
           width: bounds.width,
           height: bounds.height
-        }
+        } as any
       })
     }
   })
@@ -194,9 +203,9 @@ function todoPosition(trayBounds?: Electron.Rectangle): { x: number; y: number }
   }
 }
 
-export function createTodoWindow(trayBounds?: Electron.Rectangle): BrowserWindow {
+export function createTodoWindow(trayBounds?: Electron.Rectangle, forceShow = false): BrowserWindow {
   if (todoWindow && !todoWindow.isDestroyed()) {
-    if (todoWindow.isVisible()) {
+    if (!forceShow && todoWindow.isVisible()) {
       todoWindow.hide()
       return todoWindow
     }
@@ -340,8 +349,61 @@ export function createReminderWindow(
   })
 }
 
+export type SettingsSection = 'general' | 'appearance' | 'image-host' | 'updates'
+
+export function createSettingsWindow(section: SettingsSection = 'general'): BrowserWindow {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.show()
+    settingsWindow.focus()
+    settingsWindow.webContents.send('settings-navigate', section)
+    return settingsWindow
+  }
+
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  const w = 720
+  const h = 560
+
+  settingsWindow = new BrowserWindow({
+    width: w,
+    height: h,
+    x: Math.round(display.workArea.x + (display.workArea.width - w) / 2),
+    y: Math.round(display.workArea.y + (display.workArea.height - h) / 2),
+    show: false,
+    title: 'Meeemo Settings',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    webPreferences: {
+      preload: preloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  loadPage(settingsWindow, 'settings')
+
+  settingsWindow.once('ready-to-show', () => {
+    settingsWindow?.show()
+    settingsWindow?.webContents.send('settings-navigate', section)
+  })
+  settingsWindow.on('closed', () => { settingsWindow = null })
+
+  return settingsWindow
+}
+
+export function applyEditorBlur(radius: number): void {
+  if (!editorWindow || editorWindow.isDestroyed()) return
+  try {
+    loadNativeVibrancy().setBackgroundBlurRadius(editorWindow.getNativeWindowHandle(), radius)
+  } catch (e) {
+    console.warn('[blur] applyEditorBlur failed:', (e as Error).message)
+  }
+}
+
 export function hidePalette(): void {
   if (paletteWindow && !paletteWindow.isDestroyed()) paletteWindow.hide()
 }
 
-export { paletteWindow, editorWindow, todoWindow }
+export { paletteWindow, editorWindow, todoWindow, settingsWindow }
